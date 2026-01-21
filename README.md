@@ -1,10 +1,10 @@
-# 🩸 Real-Time Blood Donation & Inventory Management Platform
+# 🩸 BloodOS – Real-Time Blood Donation & Inventory Management Platform
 
 ## 📌 Project Overview
 
 India’s blood banks and hospitals often face shortages due to poor coordination and outdated inventory systems. During emergencies, delays in finding available blood units can cost lives.
 
-This project aims to build a **real-time full-stack web platform** that connects:
+BloodOS is a **real-time full-stack web platform** that connects:
 
 - Blood donors  
 - Hospitals / blood banks  
