@@ -72,7 +72,7 @@ This folder structure was chosen to clearly separate routing logic, reusable UI 
 
 > 📸 Screenshot of the application running locally on `http://localhost:3000`:
 
-![BloodOS running locally](./ScreenShot.png)
+![BloodOS running locally](./screenshots/ScreenShot.png)
 
 ---
 
@@ -115,6 +115,12 @@ Pre-commit hooks were set up using Husky and lint-staged to ensure code quality 
 - Commits fail if linting or formatting errors remain
 
 This ensures that only clean, consistent, and high-quality code is committed to the repository, improving collaboration and reducing review overhead.
+
+### 🧪 Linting & Pre-Commit Enforcement Evidence
+
+The following screenshot shows ESLint running successfully in the project, validating that linting rules are correctly configured and enforced as part of the development workflow. With modern ESLint (v9) and flat configuration, linting may run silently when no blocking errors are present.
+
+![ESLint execution proof](./screenshots/eslint-proof.png)
 
 ## 📄 License
 
