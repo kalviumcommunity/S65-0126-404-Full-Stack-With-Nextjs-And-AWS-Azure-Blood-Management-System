@@ -1,7 +1,7 @@
 import Image from "next/image";
 
-const b = 20
-console.log(b)
+const d = 40
+console.log(d)
 
 export default function Home() {
   return (
