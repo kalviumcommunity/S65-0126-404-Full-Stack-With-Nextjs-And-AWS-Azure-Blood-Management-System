@@ -736,7 +736,75 @@ We use standard JSON error responses. We never leak stack traces to the client i
 
 ---
 
-## 📄 License
 
-This project is developed for educational and simulated work purposes only.
+---
+
+## �️ Global API Response Handler (Sprint 1 – Assignment 2.18)
+
+To ensure consistency across endpoints, we standardized all API responses using a unified wrapper.
+
+### 1️⃣ Response Standard (Envelope)
+
+Every API response, whether success or error, follows this predictable JSON structure:
+
+```typescript
+{
+  success: boolean,
+  message: string,
+  data?: T,           // Present only on success
+  error?: {           // Present only on failure
+    code: string,     // E.g., E100, E404
+    details?: any
+  },
+  timestamp: string   // ISO Date for logging/debugging
+}
+```
+
+### 2️⃣ Error Code Dictionary
+
+We map HTTP statuses to internal short codes in `src/lib/errorCodes.ts`:
+
+| Code | Meaning | HTTP Status |
+|------|---------|-------------|
+| **E100** | Validation Error | 400 |
+| **E200** | Unauthorized | 401/403 |
+| **E300** | Not Found | 404 |
+| **E500** | Internal Error | 500 |
+
+### 3️⃣ Examples
+
+#### ✅ Success Response
+`GET /api/users/123`
+```json
+{
+  "success": true,
+  "message": "User details fetched successfully",
+  "data": {
+    "id": "123",
+    "email": "donor@example.com"
+  },
+  "timestamp": "2024-02-19T10:00:00.000Z"
+}
+```
+
+#### ❌ Error Response (Not Found)
+`GET /api/users/999`
+```json
+{
+  "success": false,
+  "message": "User not found",
+  "error": {
+    "code": "E300"
+  },
+  "timestamp": "2024-02-19T10:05:00.000Z"
+}
+```
+
+### 🧠 Reflection
+
+-   **Developer Experience**: The frontend team no longer guesses if the data is in `response.data`, `response.body`, or `response.user`. It is *always* in `response.data.data`.
+-   **Observability**: Including timestamps and specific error codes (`E100` vs generic 400) helps us debug issues faster in production logs.
+-   **Scalability**: Centralizing response logic in `responseHandler.ts` means we can easily add features like global logging or response compression later without touching every route file.
+
+---
 ```
