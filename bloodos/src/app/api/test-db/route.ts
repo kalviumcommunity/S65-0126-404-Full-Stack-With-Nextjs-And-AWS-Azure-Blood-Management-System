@@ -11,7 +11,7 @@ export async function GET() {
             update: {},
             create: {
                 email: 'test-api@bloodos.com',
-                password: 'hashed-password',
+            password: 'test-hashed-password-for-dev',
                 role: UserRole.DONOR,
             },
         });
