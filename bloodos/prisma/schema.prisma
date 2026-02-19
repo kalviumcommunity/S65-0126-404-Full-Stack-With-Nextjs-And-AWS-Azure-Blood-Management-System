@@ -68,10 +68,29 @@ model User {
   bloodRequests   BloodRequest[] // Requests made by this user
   donations       DonationRecord[] // Donations made by this user
   notifications   Notification[]
+
   auditLogs       AuditLog[]
+  files           File[]          // Files uploaded by this user
 
   @@map("users")
 }
+
+// ... (existing models) ...
+
+model File {
+  id         String   @id @default(uuid())
+  userId     String?  // Optional: Link to user who uploaded it
+  name       String
+  url        String   @unique
+  size       Int      // In bytes
+  type       String   // MIME type
+  uploadedAt DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@map("files")
+}
+
 
 model DonorProfile {
   id               String    @id @default(uuid())

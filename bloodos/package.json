@@ -10,6 +10,8 @@
     "prepare": "husky install"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.993.0",
+    "@aws-sdk/s3-request-presigner": "^3.993.0",
     "@prisma/client": "^7.4.0",
     "bcrypt": "^6.0.0",
     "date-fns": "^4.1.0",
@@ -19,6 +21,7 @@
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "uuid": "^13.0.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
@@ -29,6 +32,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/uuid": "^10.0.0",
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.1.6",
     "eslint-config-prettier": "^9.1.2",

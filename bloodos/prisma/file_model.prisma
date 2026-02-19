@@ -1,0 +1,14 @@
+
+model File {
+  id         String   @id @default(uuid())
+  userId     String?  // Optional: Link to user who uploaded it
+  name       String
+  url        String   @unique
+  size       Int      // In bytes
+  type       String   // MIME type
+  uploadedAt DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@map("files")
+}
