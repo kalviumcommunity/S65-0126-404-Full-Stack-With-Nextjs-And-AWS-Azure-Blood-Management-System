@@ -269,6 +269,68 @@ In our API routes (e.g., `POST /api/users`), we use `safeParse`:
 
 ---
 
+## 🔐 Authentication APIs & JWT (Sprint 1 – Assignment 2.20)
+
+We implemented a stateless authentication system using **JSON Web Tokens (JWT)** and **bcrypt** for secure password hashing.
+
+### 1️⃣ Auth Flow
+
+1.  **Signup (`POST /api/auth/signup`)**:
+    -   Validates input with Zod.
+    -   Hashes password with `bcrypt.hash(password, 10)`.
+    -   Creates user in DB.
+2.  **Login (`POST /api/auth/login`)**:
+    -   Verifies credentials.
+    -   Generates a signed JWT (`expiresIn: 1h`).
+    -   Returns token to client.
+3.  **Protected Routes**:
+    -   Endpoints like `GET /api/users` now require an `Authorization: Bearer <token>` header.
+    -   The server verifies the token signature before processing the request.
+
+### 2️⃣ Security Implementation
+
+-   **Password Storage**: We *never* store plain-text passwords. Only salted hashes.
+-   **Secrets**: The JWT signature relies on `JWT_SECRET` (in `.env.local`), ensuring tokens cannot be forged.
+-   **Error Handling**: Login failures return generic "Invalid credentials" messages to prevent user enumeration.
+
+### 3️⃣ Usage Examples
+
+#### Signup
+```bash
+curl -X POST http://localhost:3000/api/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{"email":"nurse@hospital.com", "password":"securePassword123", "role":"HOSPITAL"}'
+```
+
+#### Login
+```bash
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"nurse@hospital.com", "password":"securePassword123"}'
+```
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "token": "eyJhGciOiJIUzI1...",
+    "user": { "id": "...", "role": "HOSPITAL" }
+  }
+}
+```
+
+#### Access Protected Route
+```bash
+curl -H "Authorization: Bearer <YOUR_TOKEN>" http://localhost:3000/api/users
+```
+
+### 🧠 Reflection
+
+-   **Statelessness**: Using JWT allows our API to scale horizontally without needing a central session store (like Redis) for basic auth.
+-   **Role-Based Access**: The token payload includes the user's `role`, allowing us (in future sprints) to easily restrict certain actions to ADMINs or HOSPITALs only.
+
+---
+
 ## 🤝 Team Branching & PR Workflow (Sprint 1 – Assignment 2.11)
 
 This project follows a professional Git workflow designed to enhance collaboration, code quality, and traceability. Every change goes through a strict process of branching, pull request (PR) review, and automated checks before merging into the main codebase.
