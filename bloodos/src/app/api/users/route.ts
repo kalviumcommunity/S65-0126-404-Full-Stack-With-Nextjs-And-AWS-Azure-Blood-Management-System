@@ -6,18 +6,24 @@ import { sendSuccess, sendError } from '@/lib/responseHandler';
 import { ErrorCodes } from '@/lib/errorCodes';
 import { UserSchema } from '@/lib/schemas/userSchema';
 import bcrypt from 'bcrypt';
+import { handleError } from '@/lib/errorHandler'; // Import the new Centralized Error Handler
 
 // GET /api/users
 // PROTECTED ROUTE: Auth handled by Middleware
 export async function GET(req: Request) {
     try {
+        // Simulate Error for Testing
+        const { searchParams } = new URL(req.url);
+        if (searchParams.get('simulateError') === 'true') {
+            throw new Error('Simulated Database Connection Failed');
+        }
+
         // Middleware Validation Check (for extra safety)
         const userId = req.headers.get('x-user-id');
         if (!userId) {
             return sendError('Unauthorized', ErrorCodes.UNAUTHORIZED, 401);
         }
 
-        const { searchParams } = new URL(req.url);
         const page = parseInt(searchParams.get('page') || '1');
         const limit = parseInt(searchParams.get('limit') || '10');
         const skip = (page - 1) * limit;
@@ -53,12 +59,8 @@ export async function GET(req: Request) {
         );
 
     } catch (error: any) {
-        return sendError(
-            'Failed to fetch users',
-            ErrorCodes.DATABASE_ERROR,
-            500,
-            error.message
-        );
+        // Use Centralized Error Handler
+        return handleError(error, 'GET /api/users');
     }
 }
 
@@ -127,11 +129,7 @@ export async function POST(req: Request) {
         return sendSuccess(newUser, 'User created successfully', 201);
 
     } catch (error: any) {
-        return sendError(
-            'Failed to create user',
-            ErrorCodes.INTERNAL_ERROR,
-            500,
-            error.message
-        );
+        // Use Centralized Error Handler
+        return handleError(error, 'POST /api/users');
     }
 }

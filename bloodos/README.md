@@ -997,6 +997,70 @@ curl -H "Authorization: Bearer <DONOR_TOKEN>" http://localhost:3000/api/admin
 
 ---
 
-## 📄 License
+
+---
+
+## �️ Error Handling & Structured Logging (Sprint 1 – Assignment 2.22)
+
+We implemented a **centralized error handling system** to improve observability and security. By catching errors in a single utility, we ensure consistent logs and safe client responses.
+
+### 1️⃣ Structured Logger (`src/lib/logger.ts`)
+
+Instead of `console.log`, we use a custom logger that outputs JSON:
+
+```json
+{
+  "level": "error",
+  "message": "Database Connection Failed",
+  "meta": { "context": "GET /api/users", "userId": "123" },
+  "timestamp": "2024-02-20T10:00:00Z"
+}
+```
+
+### 2️⃣ Dev vs. Prod Behavior
+
+| Feature | Development (`NODE_ENV=development`) | Production (`NODE_ENV=production`) |
+| :--- | :--- | :--- |
+| **Response Message** | Full error details | "Something went wrong. Please try again later." |
+| **Stack Trace** | Included in JSON response | **HIDDEN** (Security Best Practice) |
+| **Server Logs** | JSON format | JSON format (ingested by Datadog/CloudWatch) |
+
+### 3️⃣ Example Responses
+
+#### Development (Detailed)
+```json
+{
+  "success": false,
+  "message": "Simulated Database Connection Failed",
+  "error": {
+    "code": "E500",
+    "stack": "Error: Simulated... at GET (route.ts:15:11)..."
+  },
+  "timestamp": "..."
+}
+```
+
+#### Production (Safe)
+```json
+{
+  "success": false,
+  "message": "Something went wrong. Please try again later.",
+  "error": {
+    "code": "E500"
+  },
+  "timestamp": "..."
+}
+```
+
+### 🧠 Reflection
+
+-   **Observability**: Structured JSON logs allow us to query logs by `level: error` or `context: POST /api/users` in tools like Datadog or ELK Stack.
+-   **Security**: Hiding stack traces in production prevents attackers from learning about our file structure or library versions.
+-   **Consistency**: Every single error in the app now has the exact same JSON usage signature.
+
+---
+
+## �📄 License
+
 
 This project is developed for educational and simulated work purposes only.
