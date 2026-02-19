@@ -5,11 +5,38 @@ import { UserRole } from '@prisma/client';
 import { sendSuccess, sendError } from '@/lib/responseHandler';
 import { ErrorCodes } from '@/lib/errorCodes';
 import { UserSchema } from '@/lib/schemas/userSchema';
-import { z } from 'zod';
+import bcrypt from 'bcrypt'; // Import needed for password hashing in manual create
+import jwt from 'jsonwebtoken'; // For verification
 
 // GET /api/users
+// PROTECTED ROUTE: Requires valid Bearer Token
 export async function GET(req: Request) {
     try {
+        // 1. Extract Token
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return sendError(
+                'Authentication required',
+                ErrorCodes.UNAUTHORIZED,
+                401
+            );
+        }
+
+        const token = authHeader.split(' ')[1];
+
+        // 2. Verify Token
+        try {
+            const jwtSecret = process.env.JWT_SECRET || 'development-secret-key';
+            jwt.verify(token, jwtSecret);
+        } catch (err) {
+            return sendError(
+                'Invalid or expired token',
+                ErrorCodes.UNAUTHORIZED,
+                403
+            );
+        }
+
+        // 3. Process Request (if valid)
         const { searchParams } = new URL(req.url);
         const page = parseInt(searchParams.get('page') || '1');
         const limit = parseInt(searchParams.get('limit') || '10');
@@ -56,15 +83,33 @@ export async function GET(req: Request) {
 }
 
 // POST /api/users
+// PROTECTED ROUTE: Only Admins should create users manually (conceptually, but we enforce token presence here)
 export async function POST(req: Request) {
     try {
+        // 1. Extract Token
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return sendError(
+                'Authentication required',
+                ErrorCodes.UNAUTHORIZED,
+                401
+            );
+        }
+        // Verify... (Shortened for brevity as logic duplicates GET)
+        const token = authHeader.split(' ')[1];
+        try {
+            const jwtSecret = process.env.JWT_SECRET || 'development-secret-key';
+            jwt.verify(token, jwtSecret);
+        } catch (err) {
+            return sendError('Invalid or expired token', ErrorCodes.UNAUTHORIZED, 403);
+        }
+
         const body = await req.json();
 
-        // 1️⃣ VALIDATION: Parse and validate using Zod
+        // 1️⃣ VALIDATION
         const validationResult = UserSchema.safeParse(body);
 
         if (!validationResult.success) {
-            // Format validation errors cleanly
             const errors = validationResult.error.errors.map((err) => ({
                 field: err.path.join('.'),
                 message: err.message,
@@ -93,11 +138,14 @@ export async function POST(req: Request) {
             );
         }
 
-        // 3️⃣ CREATE USER
+        // 3️⃣ HASH PASSWORD
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // 4️⃣ CREATE USER
         const newUser = await prisma.user.create({
             data: {
                 email,
-                password, // Ideally hash this!
+                password: hashedPassword,
                 role: role as UserRole,
             },
             select: {
