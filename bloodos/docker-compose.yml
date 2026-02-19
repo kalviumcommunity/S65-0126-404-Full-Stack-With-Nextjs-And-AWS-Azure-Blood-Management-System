@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # ================================
+  # Next.js Application Service
+  # ================================
+  app:
+    container_name: bloodos_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://postgres:postgres@db:5432/bloodos
+      REDIS_URL: redis://redis:6379
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+      - redis
+    networks:
+      - bloodos_network
+
+  # ================================
+  # PostgreSQL Database Service
+  # ================================
+  db:
+    container_name: bloodos_db
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: bloodos
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - bloodos_network
+
+  # ================================
+  # Redis Cache Service
+  # ================================
+  redis:
+    container_name: bloodos_redis
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - bloodos_network
+
+# ================================
+# Shared Networks
+# ================================
+networks:
+  bloodos_network:
+    driver: bridge
+
+# ================================
+# Persistent Volumes
+# ================================
+volumes:
+  pgdata:
+  redisdata:
