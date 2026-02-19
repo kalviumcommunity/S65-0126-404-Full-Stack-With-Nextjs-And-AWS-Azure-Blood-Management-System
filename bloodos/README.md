@@ -202,6 +202,89 @@ The screenshots below demonstrate correct environment variable setup and safe us
 
 ![Environment variable setup](./screenshots/env-setup.png)
 
+
+---
+
+## 🤝 Team Branching & PR Workflow (Sprint 1 – Assignment 2.11)
+
+This project follows a professional Git workflow designed to enhance collaboration, code quality, and traceability. Every change goes through a strict process of branching, pull request (PR) review, and automated checks before merging into the main codebase.
+
+### 1️⃣ Branch Naming Convention
+
+We strictly follow a structured naming convention to easily identify the purpose of each branch.
+
+**Format:** `type/short-description`
+
+| Type | Description | Example Branch Name |
+|------|-------------|---------------------|
+| **feature** | New features or enhancements | `feature/login-auth`, `feature/hospital-dashboard` |
+| **fix** | Bug fixes or patches | `fix/navbar-alignment` |
+| **chore** | Maintenance, tooling, or refactoring | `chore/workflow-setup` |
+| **docs** | Documentation updates | `docs/update-readme` |
+
+**Why this improves collaboration:**
+- Clearly communicates intent before opening the code.
+- Groups related changes logically.
+- Helps with automated release notes and changelogs.
+
+---
+
+### 2️⃣ Pull Request (PR) Template
+
+To maintain high standards, we use a mandatory **Pull Request Template** located at `.github/pull_request_template.md`. This ensures every PR description includes:
+
+- **Summary**: Context on what was done and why.
+- **Changes Made**: Bullet points of specific technical changes.
+- **Screenshots / Evidence**: Visual proof of the changes (UI or logs).
+- **Checklist**: Confirmation of local testing, linting, and no secret exposure.
+
+This standardization speeds up reviews by providing reviewers with all necessary context upfront.
+
+---
+
+### 3️⃣ Code Review Checklist
+
+Reviewers must verify the following before approving a PR:
+
+- [ ] **Folder Structure**: Code is placed in the correct `app`, `components`, or `lib` directory.
+- [ ] **Naming Conventions**: Variables and functions use meaningful names (camelCase for TS, PascalCase for components).
+- [ ] **No Console Errors**: The browser console is clean during runtime.
+- [ ] **Lint & Formatting**: `npm run lint` passes without warnings.
+- [ ] **Environment Variables**: No hardcoded secrets; use `process.env` via `src/lib/env.ts`.
+- [ ] **Type Safety**: No `any` types; interfaces are defined properly.
+- [ ] **Documentation**: Comments explain complex logic; README is updated if improved.
+
+---
+
+### 4️⃣ Branch Protection Rules
+
+To prevent broken code from reaching production, the following rules are configured for the `main` branch:
+
+1.  **Require Pull Request reviews before merging**:
+    - At least **one approval** is required from a teammate.
+    - Prevents unreviewed code from being merged.
+
+2.  **Require status checks to pass before merging**:
+    - Build and Lint checks must succeed.
+    - Ensures the codebase remains deployable at all times.
+
+3.  **Include administrators in restrictions**:
+    - Even admins cannot bypass these rules, ensuring consistency.
+
+4.  **Do not allow bypassing the above settings**:
+    - Enforces the workflow for everyone on the team.
+
+---
+
+### 🧠 Reflection
+
+Implementing this workflow shifts the development process from "coding alone" to "engineering together."
+- **Velocity**: It initially slows down individual commits but **speeds up the overall release cycle** by catching bugs early.
+- **Quality**: Mandatory reviews and checklists drastically reduce the chance of bad code reaching production.
+- **Traceability**: Structured branch names and PR templates created a clear history of *why* changes were made, not just *what* changed.
+
+---
+
 ## 📄 License
 
 This project is developed for educational and simulated work purposes only.
