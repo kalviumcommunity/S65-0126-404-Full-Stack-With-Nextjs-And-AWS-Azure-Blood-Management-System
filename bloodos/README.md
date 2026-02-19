@@ -659,6 +659,86 @@ This output allows us to inspect query execution times in the terminal during de
 
 ---
 
+
+---
+
+## 🌐 API Route Structure & Naming (Sprint 1 – Assignment 2.17)
+
+We follow strictly RESTful conventions for our Next.js App Router API. Resources are named using plural nouns, and actions are defined by HTTP verbs.
+
+### 1️⃣ Resource Design
+
+Our API is organized hierarchically:
+
+```
+src/app/api/
+├── users/
+│   ├── route.ts            # GET (all), POST (create)
+│   └── [id]/
+│       ├── route.ts        # GET (one), PATCH (update), DELETE
+│       └── donations/      # Nested Resource
+│           └── route.ts    # GET (donations for specific user)
+├── donations/
+│   └── route.ts            # GET (all), POST (create)
+├── hospitals/
+└── blood-inventory/
+```
+
+### 2️⃣ HTTP Verb Usage
+
+| Verb | Usage | Success Status | Error Status |
+|------|-------|----------------|--------------|
+| **GET** | Fetch resources (list or single) | `200 OK` | `404 Not Found` |
+| **POST** | Create new resource | `201 Created` | `400 Bad Request` |
+| **PATCH** | Update existing resource (partial) | `200 OK` | `404 Not Found` |
+| **DELETE** | Remove resource | `204 No Content` | `404 Not Found` |
+
+### 3️⃣ Pagination & Filtering
+
+All "List" endpoints (`GET /api/users`) support pagination via query parameters:
+- `page` (default: 1)
+- `limit` (default: 10)
+
+**Example Request:**
+```bash
+curl "http://localhost:3000/api/users?page=2&limit=5"
+```
+
+**Response Format:**
+```json
+{
+  "success": true,
+  "meta": {
+    "total": 50,
+    "page": 2,
+    "limit": 5,
+    "totalPages": 10
+  },
+  "data": [ ... ]
+}
+```
+
+### 4️⃣ Error Handling
+
+We use standard JSON error responses. We never leak stack traces to the client in production.
+
+**Error Response Example:**
+```json
+{
+  "success": false,
+  "error": "User not found"
+}
+```
+
+### 🧠 Reflection
+
+-   **Consistency**: Using standard naming (`/users` vs `/getUsers`) makes the API predictable for frontend developers.
+-   **Nested Routes**: `/api/users/[id]/donations` intuitively explains "Get donations belonging to this user".
+-   **Scalability**: Pagination is enforced by default to prevent server crashes on large datasets.
+
+---
+
 ## 📄 License
 
 This project is developed for educational and simulated work purposes only.
+```
