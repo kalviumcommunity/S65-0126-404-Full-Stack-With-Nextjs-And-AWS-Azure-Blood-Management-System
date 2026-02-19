@@ -159,10 +159,15 @@ model DonationRecord {
   status       DonationStatus @default(COMPLETED)
   notes        String?
 
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
   donor User @relation(fields: [donorId], references: [id])
 
   @@index([donorId])
   @@index([donationDate])
+  @@index([bloodType]) // Optimized for filtering by blood type
+  @@index([createdAt]) // Optimized for date ranges
   @@map("donation_records")
 }
 
