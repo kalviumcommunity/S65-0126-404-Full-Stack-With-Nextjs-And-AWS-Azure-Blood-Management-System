@@ -285,6 +285,78 @@ Implementing this workflow shifts the development process from "coding alone" to
 
 ---
 
+
+---
+
+## 🐳 Docker & Compose Setup (Sprint 1 – Assignment 2.12)
+
+This project is fully containerized using **Docker** and **Docker Compose**, providing a consistent development environment across all team members' machines. This eliminates "it works on my machine" issues and simplifies dependency management.
+
+### 1️⃣ Dockerfile Overview
+
+We use a multi-stage `Dockerfile` optimized for production performance:
+
+- **Base Stage**: Installs dependencies on a lightweight `node:20-alpine` image.
+- **Builder Stage**: Compiles the Next.js application.
+- **Runner Stage**: Creates a minimal production image, running the app in "standalone" mode to reduce image size significantly (from >1GB to ~100MB).
+
+### 2️⃣ Docker Compose Services
+
+Our `docker-compose.yml` orchestrates the following services:
+
+| Service | Image | Internal Port | External Port | Description |
+|---------|-------|---------------|---------------|-------------|
+| **app** | `node:20-alpine` | `3000` | `3000` | The core Next.js application. |
+| **db** | `postgres:15-alpine` | `5432` | `5432` | Primary database with persistent volume `pgdata`. |
+| **redis** | `redis:7-alpine` | `6379` | `6379` | In-memory cache for session management and queues. |
+
+### 3️⃣ Setup & Commands
+
+#### Build and Start
+To build the images and start all services in the background:
+```bash
+docker-compose up --build -d
+```
+
+#### Check Status
+To verify all containers are running correctly:
+```bash
+docker ps
+```
+You should see `bloodos_app`, `bloodos_db`, and `bloodos_redis` actively running.
+
+#### Stop Services
+To stop and remove containers (data in volumes persists):
+```bash
+docker-compose down
+```
+
+#### View Logs
+To follow logs for the application:
+```bash
+docker-compose logs -f app
+```
+
+### 4️⃣ Troubleshooting & Tips
+
+- **Port Conflicts**: Ensure ports `3000`, `5432`, and `6379` are not being used by local instances of Node, Postgres, or Redis.
+- **Permissions**: If build fails on Linux/Mac, ensure you have proper Docker permissions (`sudo` might be needed).
+- **Environment**: The `docker-compose.yml` sets default development variables. For production, these should be securely injected via a `.env` file on the server.
+
+### 5️⃣ 📸 Submission Screenshots
+
+For Assignment 2.12, capture the following evidence:
+1.  **Build Logs**: Screenshot of the terminal showing a successful `docker-compose up --build`.
+2.  **Container Status**: Screenshot of `docker ps` listing all 3 active containers.
+3.  **App Running**: Browser screenshot of `localhost:3000`.
+4.  **Database Connection**: Screenshot of a DB client (like DBeaver or pgAdmin) connected to `localhost:5432`.
+
+### 🧠 Reflection
+
+Containerization ensures that every developer runs the exact same versions of Node.js, PostgreSQL, and Redis. This drastically reduces onboarding time for new team members and ensures that the production environment behaves exactly like the local development environment.
+
+---
+
 ## 📄 License
 
 This project is developed for educational and simulated work purposes only.
