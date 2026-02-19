@@ -1225,11 +1225,49 @@ curl -X POST http://localhost:3000/api/email \
 -   **Retry Strategies**: Wrap `sendEmail()` in an exponential backoff retry for transient provider failures.
 -   **Queue for Scale**: For high volume, emails should be pushed to an SQS queue and processed by a separate worker — decoupling email delivery from request handling.
 
+
 ---
 
-## �📄 License
+## �️ Page Routing & Dynamic Routes (Sprint 1 – Assignment 2.26)
 
+We implemented Next.js App Router file-based routing with public routes, protected routes, and dynamic segments.
 
+### 1️⃣ Route Map
 
+```
+/                    → Home (Public)
+/login               → Login (Public)  — sets auth_token cookie
+/dashboard           → Dashboard (Protected 🔒)
+/users               → Users List (Protected 🔒)
+/users/[id]          → User Profile (Protected 🔒, Dynamic)
+/not-found           → Custom 404
+```
+
+### 2️⃣ Middleware Protection for Pages
+
+The middleware now handles **two token sources**:
+
+| Route Type | Token Source | Failure Behavior |
+| :--- | :--- | :--- |
+| API Routes (`/api/*`) | `Authorization: Bearer <token>` | Return 401/403 JSON |
+| Page Routes (`/dashboard`, `/users`) | `auth_token` cookie | Redirect to `/login?from=<path>` |
+
+### 3️⃣ Dynamic Routes
+
+`/users/[id]` demonstrates:
+- **Breadcrumb**: Home › Users › User {id}
+- **Dynamic SEO Metadata**: `generateMetadata()` generates per-user title/description
+- **notFound()**: Invalid IDs render the custom 404 page
+
+### 4️⃣ Reflection
+
+- **File-based routing** eliminates verbose router configuration — just create a folder.
+- **Protected redirects** preserve the `?from=` param so users land where they intended after login.
+- **Dynamic routes** make the app infinitely scalable — `/users/[id]` handles millions of profiles without new routes.
+- **`notFound()`** triggers the `not-found.tsx` UI cleanly without a full page reload.
+
+---
+
+## 📄 License
 
 This project is developed for educational and simulated work purposes only.
