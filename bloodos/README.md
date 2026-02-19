@@ -584,6 +584,79 @@ To verify the schema and data:
 
 ---
 
+
+---
+
+## ⚡ Transaction & Query Optimisation (Sprint 1 – Assignment 2.16)
+
+Efficient database interactions are key to BloodOS's scalability. We use **Prisma Transactions** for data integrity and **Optimised Queries** to reduce load.
+
+### 1️⃣ Atomic Transactions (Rollback Safety)
+
+When a donation is recorded, three things **must** happen together or **none** at all:
+1.  **Create** a `DonationRecord`.
+2.  **Update** `BloodInventory` (add stock).
+3.  **Log** the action in `AuditLog`.
+
+We use `prisma.$transaction` to enforce this. If any step fails (e.g., database error or validation check), the entire operation is rolled back, preventing "phantom" inventory.
+
+**Example Endpoint:** `src/app/api/donation/route.ts`
+
+### 2️⃣ Query Optimisation Strategy
+
+We avoid the "N+1 Problem" and over-fetching by using specific `select` clauses and pagination.
+
+#### Bad Practice (Avoided) ❌
+Fetched entire User object including password hash for every donation:
+```typescript
+const donations = await prisma.donationRecord.findMany({ include: { donor: true } });
+```
+
+#### Optimised Practice ✅
+Fetching only necessary fields:
+```typescript
+const donations = await prisma.donationRecord.findMany({
+  select: {
+    id: true,
+    quantity: true,
+    donor: {
+      select: { email: true, donorProfile: { select: { fullName: true } } }
+    }
+  }
+});
+```
+
+### 3️⃣ Indexes & Performance
+
+We added composite and single-field indexes to `schema.prisma` to speed up common filters:
+
+-   `@@index([bloodType])`: Faster filtering of inventory and donations.
+-   `@@index([donationDate])`: Optimizes reporting queries by date range.
+-   `@@index([donorId])`: Quick lookup of a user's history.
+
+### 4️⃣ Performance Monitoring
+
+To view actual SQL queries and performance metrics, we enable logging in `src/lib/prisma.ts`:
+```typescript
+const prisma = new PrismaClient({
+  log: ['query', 'info', 'warn', 'error'],
+});
+```
+This output allows us to inspect query execution times in the terminal during development.
+
+### 🧠 Reflection
+
+-   **Data Integrity**: Without transactions, a server crash could log a donation but fail to update inventory, causing stock mismatches.
+-   **Speed**: Selecting only needed fields reduces payload size and network latency.
+-   **Scalability**: Pagination ensures the server doesn't crash when trying to load 10,000 donation records at once.
+
+### 📷 Submission Evidence
+1.  **Transaction Success**: API response showing donation + inventory update.
+2.  **Rollback Test**: API response showing error and *no* data changes when 'shouldFail' is true.
+3.  **Optimised Query**: JSON response from `GET /api/donation` showing paginated, minimal data.
+
+---
+
 ## 📄 License
 
 This project is developed for educational and simulated work purposes only.
