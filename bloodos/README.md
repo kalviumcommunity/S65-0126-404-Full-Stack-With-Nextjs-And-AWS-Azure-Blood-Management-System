@@ -509,6 +509,81 @@ Prisma bridges the gap between our TypeScript application and the PostgreSQL dat
 
 ---
 
+
+---
+
+## 🎲 Database Migrations & Seed Scripts (Sprint 1 – Assignment 2.15)
+
+Managing database schema changes effectively is critical for team collaboration and production stability. We use Prisma Migrations to track changes and Seed Scripts to populate consistent test data.
+
+### 1️⃣ Database Migrations
+
+**Migrations** act as version control for your database schema. They ensure every developer and the production server have the exact same table structure.
+
+#### Creating a Migration
+When you modify `prisma/schema.prisma` (e.g., adding a field), run:
+```bash
+npx prisma migrate dev --name <descriptive-name>
+```
+*Example: `npx prisma migrate dev --name add_dob_to_user`*
+This generates a SQL file in `prisma/migrations` and applies it to your local DB.
+
+#### Deploying to Production
+**NEVER** use `migrate dev` in production. Instead, use:
+```bash
+npx prisma migrate deploy
+```
+This applies pending migrations without resetting the database or generating new SQL files.
+
+#### Resetting the Database
+If your local database gets messy or out of sync:
+```bash
+npx prisma migrate reset
+```
+This drops the database, re-applies all migrations, and runs the seed script automatically.
+
+### 2️⃣ Production-Level Strategy
+
+-   **Immutability**: Once a migration is merged to `main`, the SQL file should never be edited. If you made a mistake, create a *new* migration to fix it.
+-   **Review**: SQL migration files should be reviewed in PRs to ensure no accidental data loss (e.g., `DROP TABLE`).
+-   **Backup**: Always backup the production database before running `migrate deploy`.
+
+### 3️⃣ Seed Script (Idempotent)
+
+Our seed script at `prisma/seed.ts` loads essential initial data (Admin, Hospital, Donor).
+
+-   **Command**: `npx prisma db seed`
+-   **Idempotency**: We use `upsert` (Update or Insert) instead of `create`. This allows you to run the seed command multiple times without crashing due to duplicate key errors.
+
+**Configuration in `package.json`**:
+```json
+"prisma": {
+  "seed": "ts-node prisma/seed.ts"
+}
+```
+
+### 4️⃣ Verification
+
+To verify the schema and data:
+1.  Run `npx prisma studio`.
+2.  Check the `User` table for the seeded admin and donor.
+3.  Check `BloodInventory` for the initial stock.
+
+### 🧠 Reflection
+
+-   **Consistency**: Migrations eliminate "it works on my machine" issues caused by schema drift.
+-   **Onboarding**: New developers simply run `npm install` and `npx prisma migrate dev`, and they have a fully working, populated database immediately.
+-   **Reliability**: Automated migrations reduce the risk of human error during deployments compared to manual SQL execution.
+
+### 📷 Submission Evidence
+
+1.  **Migration Logs**: Screenshot of `npx prisma migrate dev` success.
+2.  **Migration Folder**: Screenshot of the `prisma/migrations` directory structure.
+3.  **Seed Output**: Screenshot of the terminal showing "🌱 Starting seed..." and "✅ Created...".
+4.  **Prisma Studio**: Screenshot showing the populated data.
+
+---
+
 ## 📄 License
 
 This project is developed for educational and simulated work purposes only.
