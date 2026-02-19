@@ -120,7 +120,87 @@ This ensures that only clean, consistent, and high-quality code is committed to 
 
 The following screenshot shows ESLint running successfully in the project, validating that linting rules are correctly configured and enforced as part of the development workflow. With modern ESLint (v9) and flat configuration, linting may run silently when no blocking errors are present.
 
+
 ![ESLint execution proof](./screenshots/eslint-proof.png)
+
+---
+
+## 🔐 Environment Variable Management (Sprint 1 – Assignment 2.10)
+
+This project uses environment variables to manage sensitive configuration securely and follow best practices for production-ready applications.
+
+### Environment Files
+
+- **`.env.local`**: Use this file for **local development secrets**. It is **ignored by Git** and should never be committed. It overrides defaults for your local machine.
+- **`.env.example`**: A **committed template file**. It lists all required environment variables with placeholder values and comments to guide new developers.
+
+### Type of Variables
+
+#### 1. Server-Side Variables (Secrets)
+These variables are available **only on the server** (e.g., API routes, server components, `getServerSideProps`). They are **never exposed** to the client-side bundle.
+
+- `DATABASE_URL`: Connection string for the PostgreSQL database.
+- `JWT_SECRET`: Secret key used for signing authentication tokens.
+
+**Usage:**
+```ts
+// Server-side only
+const dbUrl = process.env.DATABASE_URL;
+const secret = process.env.JWT_SECRET;
+```
+
+#### 2. Client-Side Variables (Public)
+Variables prefixed with `NEXT_PUBLIC_` are automatically exposed to the browser. Use these **strictly** for non-sensitive data (e.g., API endpoints, public keys).
+
+- `NEXT_PUBLIC_API_BASE_URL`: The base URL for the backend API.
+
+**Usage:**
+We use a centralized helper file for client-side variables to ensure type safety and consistency.
+
+```ts
+// src/lib/env.ts
+export const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+```
+
+### 🚀 Setup Instructions
+
+1. **Copy the example file:**
+   Duplicate `.env.example` to create your local environment file.
+   ```bash
+   cp .env.example .env.local
+   ```
+
+2. **Configure your secrets:**
+   Open `.env.local` and fill in your actual credentials (database URL, secrets, etc.).
+
+3. **Restart the server:**
+   Next.js loads environment variables on startup. Restart your dev server to apply changes.
+   ```bash
+   npm run dev
+   ```
+
+### 🛡️ Security Considerations
+
+- **Never commit `.env.local`**: It is explicitly ignored in `.gitignore`.
+- **Prefix carefully**: Only use `NEXT_PUBLIC_` for variables that are safe to be public.
+- **Access control**: Server-side variables like `DATABASE_URL` will be `undefined` if accessed in client-side code, preventing accidental leaks.
+
+### ❌ Common Mistakes Avoided
+
+- **Committing secrets**: Ensure `.env.local` is always in `.gitignore`.
+- **Exposing secrets to client**: Avoid adding `NEXT_PUBLIC_` to sensitive keys like `JWT_SECRET`.
+- **Hardcoding values**: Always use `process.env` instead of hardcoding URLs or keys.
+- **Missing production variables**: Ensure all variables in `.env.example` are also set in your production environment (e.g., Vercel, AWS).
+
+### 📸 Environment Configuration Evidence
+
+The screenshots below demonstrate correct environment variable setup and safe usage within the project:
+
+- `.env.example` documenting required server-side and client-side variables
+- `.gitignore` ensuring `.env.local` is never committed
+- Centralized and safe access of environment variables using `process.env`
+
+![Environment variable setup](./screenshots/env-setup.png)
 
 ## 📄 License
 
