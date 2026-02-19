@@ -5,38 +5,18 @@ import { UserRole } from '@prisma/client';
 import { sendSuccess, sendError } from '@/lib/responseHandler';
 import { ErrorCodes } from '@/lib/errorCodes';
 import { UserSchema } from '@/lib/schemas/userSchema';
-import bcrypt from 'bcrypt'; // Import needed for password hashing in manual create
-import jwt from 'jsonwebtoken'; // For verification
+import bcrypt from 'bcrypt';
 
 // GET /api/users
-// PROTECTED ROUTE: Requires valid Bearer Token
+// PROTECTED ROUTE: Auth handled by Middleware
 export async function GET(req: Request) {
     try {
-        // 1. Extract Token
-        const authHeader = req.headers.get('Authorization');
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return sendError(
-                'Authentication required',
-                ErrorCodes.UNAUTHORIZED,
-                401
-            );
+        // Middleware Validation Check (for extra safety)
+        const userId = req.headers.get('x-user-id');
+        if (!userId) {
+            return sendError('Unauthorized', ErrorCodes.UNAUTHORIZED, 401);
         }
 
-        const token = authHeader.split(' ')[1];
-
-        // 2. Verify Token
-        try {
-            const jwtSecret = process.env.JWT_SECRET || 'development-secret-key';
-            jwt.verify(token, jwtSecret);
-        } catch (err) {
-            return sendError(
-                'Invalid or expired token',
-                ErrorCodes.UNAUTHORIZED,
-                403
-            );
-        }
-
-        // 3. Process Request (if valid)
         const { searchParams } = new URL(req.url);
         const page = parseInt(searchParams.get('page') || '1');
         const limit = parseInt(searchParams.get('limit') || '10');
@@ -83,25 +63,13 @@ export async function GET(req: Request) {
 }
 
 // POST /api/users
-// PROTECTED ROUTE: Only Admins should create users manually (conceptually, but we enforce token presence here)
+// PROTECTED ROUTE: Auth handled by Middleware
 export async function POST(req: Request) {
     try {
-        // 1. Extract Token
-        const authHeader = req.headers.get('Authorization');
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return sendError(
-                'Authentication required',
-                ErrorCodes.UNAUTHORIZED,
-                401
-            );
-        }
-        // Verify... (Shortened for brevity as logic duplicates GET)
-        const token = authHeader.split(' ')[1];
-        try {
-            const jwtSecret = process.env.JWT_SECRET || 'development-secret-key';
-            jwt.verify(token, jwtSecret);
-        } catch (err) {
-            return sendError('Invalid or expired token', ErrorCodes.UNAUTHORIZED, 403);
+        // Middleware Validation Check
+        const userId = req.headers.get('x-user-id');
+        if (!userId) {
+            return sendError('Unauthorized', ErrorCodes.UNAUTHORIZED, 401);
         }
 
         const body = await req.json();

@@ -932,5 +932,69 @@ We map HTTP statuses to internal short codes in `src/lib/errorCodes.ts`:
 -   **Observability**: Including timestamps and specific error codes (`E100` vs generic 400) helps us debug issues faster in production logs.
 -   **Scalability**: Centralizing response logic in `responseHandler.ts` means we can easily add features like global logging or response compression later without touching every route file.
 
+
 ---
+
+## 🔒 Authorization Middleware & RBAC (Sprint 1 – Assignment 2.21)
+
+We upgraded our security model by implementing a centralized **Next.js Middleware** to handle authentication and role-based access control (RBAC) at the edge.
+
+### 1️⃣ Middleware Logic (`src/middleware.ts`)
+
+Instead of validating tokens in every route handlers, the middleware intercepts requests:
+
+1.  **Check Path**: Is it a protected route? (`/api/users`, `/api/admin`)
+2.  **Verify Token**: Uses `jose` (Edge-compatible JWT library) to verify `Authorization: Bearer <token>`.
+3.  **Check Role**:
+    -   If accessing `/api/admin`, user role must be `ADMIN`.
+    -   If valid, injects `x-user-id` and `x-user-role` headers.
+4.  **Reject**: Returns 401 (Missing Token) or 403 (Forbidden/Invalid Role).
+
+### 2️⃣ Role-Based Access Control (RBAC)
+
+We support multiple roles via the `UserRole` enum:
+-   **ADMIN**: Full access to `/api/admin` and all user data.
+-   **DONOR/HOSPITAL**: Access to their own data and general authenticated routes.
+
+### 3️⃣ Usage Examples
+
+#### Admin Access (Success)
+```bash
+# Login as Admin first to get token
+curl -H "Authorization: Bearer <ADMIN_TOKEN>" http://localhost:3000/api/admin
 ```
+**Response:**
+```json
+{
+  "success": true,
+  "data": "This is protected Admin data",
+  "userId": "admin-uuid",
+  "userRole": "ADMIN"
+}
+```
+
+#### User Accessing Admin (Failure)
+```bash
+# Login as Donor
+curl -H "Authorization: Bearer <DONOR_TOKEN>" http://localhost:3000/api/admin
+```
+**Response:**
+```json
+{
+  "success": false,
+  "message": "Access denied. Admin privileges required.",
+  "error": { "code": "FORBIDDEN" }
+}
+```
+
+### 🧠 Reflection
+
+-   **Least Privilege**: Users only get access to what they strictly need. Donors cannot see Admin stats.
+-   **Centralized Security**: If we need to change how tokens are verified (e.g., add rotation or blacklist), we change it in *one file* (`middleware.ts`), protecting the entire app instantly.
+-   **Performance**: Middleware runs at the Edge (Vercel/Next.js default), making auth checks extremely fast before even hitting our database or Node.js server.
+
+---
+
+## 📄 License
+
+This project is developed for educational and simulated work purposes only.
