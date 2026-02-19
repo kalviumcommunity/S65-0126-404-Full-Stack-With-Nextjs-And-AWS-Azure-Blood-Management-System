@@ -1106,7 +1106,69 @@ When a new user is created (`POST /api/users`), the cached list becomes stale. W
 
 ---
 
+
+---
+
+## ☁️ Secure File Uploads (Sprint 1 – Assignment 2.24)
+
+We implemented a **secure, scalable file upload system** using AWS S3 Pre-Signed URLs. This allows users to upload files directly to S3 without burdening our server with file buffers.
+
+### 1️⃣ Upload Flow (Security & Performance)
+
+1.  **Client Request**: User asks for upload permission (`POST /api/upload`).
+    -   Server validates file type (e.g., Image/PDF) and size (< 5MB).
+2.  **Generate URL**: Server uses AWS SDK to generate a temporary **Pre-Signed URL** (valid for 60s).
+3.  **Direct Upload**: Client PUTs the file directly to S3 using this URL.
+4.  **Metadata Store**: Client notifies server (`POST /api/files`) to save file metadata (URL, size) in PostgreSQL.
+
+### 2️⃣ Why Pre-Signed URLs?
+
+-   **Server Load**: Large files don't consume our Node.js memory or bandwidth.
+-   **Security**: We don't expose AWS Credentials to the client. The URL is time-bombed (60s).
+-   **Scalability**: S3 handles the heavy lifting of ingestion.
+
+### 3️⃣ File Storage Model (Prisma)
+
+```prisma
+model File {
+  id        String   @id @default(uuid())
+  userId    String?
+  name      String
+  url       String   @unique
+  size      Int
+  type      String
+  uploadedAt DateTime @default(now())
+}
+```
+
+### 4️⃣ Example Usage
+
+**Step 1: Get Upload URL**
+```bash
+POST /api/upload
+Body: { "filename": "report.pdf", "fileType": "application/pdf", "fileSize": 102400 }
+```
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "uploadURL": "https://bloodos-uploads.s3.amazonaws.com/uploads/user-123/uuid.pdf?X-Amz-Signature=...",
+    "fileKey": "uploads/user-123/uuid.pdf",
+    "expiresIn": 60
+  }
+}
+```
+
+**Step 2: Upload File**
+```bash
+curl -X PUT -T report.pdf "https://bloodos-uploads.s3.amazonaws.com/..."
+```
+
+---
+
 ## 📄 License
+
 
 
 This project is developed for educational and simulated work purposes only.
