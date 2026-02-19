@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { UserRole } from '@prisma/client';
 import { sendSuccess, sendError } from '@/lib/responseHandler';
 import { ErrorCodes } from '@/lib/errorCodes';
+import { UserSchema } from '@/lib/schemas/userSchema';
+import { z } from 'zod';
 
 // GET /api/users
 export async function GET(req: Request) {
@@ -30,7 +32,6 @@ export async function GET(req: Request) {
             }),
         ]);
 
-        // Construct response with metadata
         return sendSuccess(
             {
                 users,
@@ -58,16 +59,28 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { email, password, role } = body;
 
-        if (!email || !password || !role) {
+        // 1️⃣ VALIDATION: Parse and validate using Zod
+        const validationResult = UserSchema.safeParse(body);
+
+        if (!validationResult.success) {
+            // Format validation errors cleanly
+            const errors = validationResult.error.errors.map((err) => ({
+                field: err.path.join('.'),
+                message: err.message,
+            }));
+
             return sendError(
-                'Missing required fields (email, password, role)',
+                'Validation Error',
                 ErrorCodes.VALIDATION_ERROR,
-                400
+                400,
+                errors
             );
         }
 
+        const { email, password, role } = validationResult.data;
+
+        // 2️⃣ CHECK EXISTS
         const existingUser = await prisma.user.findUnique({
             where: { email },
         });
@@ -80,10 +93,11 @@ export async function POST(req: Request) {
             );
         }
 
+        // 3️⃣ CREATE USER
         const newUser = await prisma.user.create({
             data: {
                 email,
-                password, // In production, usually verify hashing here!
+                password, // Ideally hash this!
                 role: role as UserRole,
             },
             select: {

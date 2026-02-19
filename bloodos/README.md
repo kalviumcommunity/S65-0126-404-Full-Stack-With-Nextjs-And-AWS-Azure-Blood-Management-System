@@ -205,6 +205,70 @@ The screenshots below demonstrate correct environment variable setup and safe us
 
 ---
 
+## 🛡️ Input Validation & Zod (Sprint 1 – Assignment 2.19)
+
+We use **Zod** to validate all incoming API requests. This ensures data integrity and provides helpful error messages to the frontend before any database operations occur.
+
+### 1️⃣ Schema Shared Library
+
+We define reusable schemas in `src/lib/schemas/` that can be inferred as TypeScript types:
+
+**Example: UserSchema (`src/lib/schemas/userSchema.ts`)**
+```typescript
+export const UserSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+  role: z.enum(['DONOR', 'HOSPITAL', 'ADMIN'])
+});
+
+export type UserInput = z.infer<typeof UserSchema>;
+```
+
+### 2️⃣ Validation Workflow
+
+In our API routes (e.g., `POST /api/users`), we use `safeParse`:
+
+1.  **Parse Body**: `UserSchema.safeParse(body)`
+2.  **Check Success**: If `!result.success`, return 400 immediately.
+3.  **Format Errors**: Map Zod errors to a clean `{ field, message }` array.
+
+### 3️⃣ Example Responses
+
+#### ✅ Success
+`POST /api/users`
+```json
+{
+  "success": true,
+  "message": "User created successfully",
+  "data": { "id": "uuid-123", "email": "test@example.com" }
+}
+```
+
+#### ❌ Validation Error
+`POST /api/users` (Invalid email and short password)
+```json
+{
+  "success": false,
+  "message": "Validation Error",
+  "error": {
+    "code": "E100",
+    "details": [
+      { "field": "email", "message": "Invalid email address" },
+      { "field": "password", "message": "String must contain at least 8 character(s)" }
+    ]
+  },
+  "timestamp": "..."
+}
+```
+
+### 🧠 Reflection
+
+-   **Reusability**: By exporting `type UserInput = z.infer<...>`, our frontend form components can use the *exact same* type definition as the backend validation logic.
+-   **Security**: Validation happens *before* checking the database, preventing unnecessary queries and potential injection attacks.
+-   **Clarity**: Structured error messages help frontend developers highlight specific form fields that need correction.
+
+---
+
 ## 🤝 Team Branching & PR Workflow (Sprint 1 – Assignment 2.11)
 
 This project follows a professional Git workflow designed to enhance collaboration, code quality, and traceability. Every change goes through a strict process of branching, pull request (PR) review, and automated checks before merging into the main codebase.
