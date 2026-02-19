@@ -357,6 +357,73 @@ Containerization ensures that every developer runs the exact same versions of No
 
 ---
 
+
+---
+
+## 🏗️ PostgreSQL Schema Design (Sprint 1 – Assignment 2.13)
+
+This project uses **Prisma ORM** with **PostgreSQL** to define a strongly-typed, normalized relative schema. The design prioritizes data integrity, role separation, and query performance.
+
+### 1️⃣ Core Entities & Relationships
+
+| Entity | Description | Key Relationships |
+|--------|-------------|-------------------|
+| **User** | Central authentication entity. | 1:1 with `DonorProfile` or `HospitalProfile`. |
+| **DonorProfile** | Specific data for blood donors. | Belongs to `User`. Logs `DonationRecord`. |
+| **HospitalProfile** | specific data for healthcare facilities. | Belongs to `User`. Manages `BloodInventory`. |
+| **BloodInventory** | Tracks blood stock levels at hospitals. | N:1 with `HospitalProfile`. Indexed by blood type. |
+| **BloodRequest** | Requests for blood from hospitals/users. | N:1 with `User` (Requester). |
+| **DonationRecord** | History of completed donations. | N:1 with `DonorProfile` (User). |
+
+### 2️⃣ Normalization Strategy
+
+We strictly adhere to **3NF (Third Normal Form)** to eliminate redundancy:
+
+-   **1NF (Atomic Values)**: No arrays or nested objects (e.g., inventory is a separate table, not a JSON field on Hospital).
+-   **2NF (No Partial Dependencies)**: All tables have a single primary key (`id`), and all fields depend on the whole key.
+-   **3NF (No Transitive Dependencies)**: Address details are stored on profiles, not repeated on every transaction. Blood type is an ENUM, ensuring consistency.
+
+### 3️⃣ Migration & Seeding Commands
+
+#### Initialize & Push Schema
+To create the tables in your local PostgreSQL container:
+```bash
+npx prisma migrate dev --name init_schema
+```
+
+#### Generate Client
+To update the TypeScript types based on the schema:
+```bash
+npx prisma generate
+```
+
+#### View Data
+To inspect the database using a GUI:
+```bash
+npx prisma studio
+```
+
+#### Seed Initial Data
+To populate the DB with a test Admin, Hospital, and Donor:
+```bash
+npx prisma db seed
+```
+
+### 4️⃣ Scalability Considerations
+
+-   **Indexes**: Added on frequently queried columns like `bloodType`, `hospitalId`, and `status` to speed up filtering.
+-   **Enums**: Used for `Role`, `BloodType`, and `Status` to enforce data integrity at the database level.
+-   **UUIDs**: We use UUIDs for primary keys to allow easy data merging and avoid sequential ID enumeration attacks.
+-   **Cascade Deletes**: Configuring `onDelete: Cascade` ensures that deleting a User automatically cleans up their Profile and related sensitive data.
+
+### 5️⃣ 📸 Submission Screenshots
+
+For Assignment 2.13, capture:
+1.  **Migration Success**: Terminal output showing `prisma migrate dev` completion.
+2.  **Prisma Studio**: Screenshot of the browser showing the `User` and `BloodInventory` tables populated with seed data.
+
+---
+
 ## 📄 License
 
 This project is developed for educational and simulated work purposes only.
