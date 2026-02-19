@@ -424,6 +424,93 @@ For Assignment 2.13, capture:
 
 ---
 
+
+---
+
+## 🏎️ Prisma ORM Setup & Client Initialisation (Sprint 1 – Assignment 2.14)
+
+Prisma is our chosen ORM (Object-Relational Mapper) because it provides **type-safety**, **auto-completion**, and **migration management** out of the box. This setup ensures that our database interactions are robust and scalable.
+
+### 1️⃣ Installation & Initialization
+
+We installed the core Prisma CLI and the client library:
+```bash
+npm install prisma --save-dev
+npm install @prisma/client
+npx prisma init
+```
+- `prisma`: Development tool for migrations and studio.
+- `@prisma/client`: Auto-generated query builder used in our Next.js API routes.
+- `prisma.config.ts`: Configuration file (replacing `schema.prisma` datasource URL in v7).
+
+### 2️⃣ Schema Design (Production-Ready)
+
+Our `prisma/schema.prisma` file defines all models (`User`, `DonorProfile`, `BloodInventory`, etc.) with strict types and relationships.
+- **Enums** (`UserRole`, `BloodType`) enforce data consistency.
+- **Indexes** (`@@index`) optimize query performance.
+- **Relations** (`@relation`) link tables (e.g., User -> DonorProfile).
+
+### 3️⃣ Migration Workflow
+
+To apply changes to the database:
+1.  **Modify** `schema.prisma`.
+2.  **Run Migration**:
+    ```bash
+    npx prisma migrate dev --name <migration_name>
+    ```
+    This creates the SQL tables and updates the database.
+3.  **Generate Client**:
+    ```bash
+     npx prisma generate
+    ```
+    This updates the TypeScript types in `node_modules`.
+4.  **Verify**:
+    ```bash
+    npx prisma studio
+    ```
+    Opens a web GUI to view/edit data.
+
+### 4️⃣ Prisma Client (Singleton Pattern)
+
+To prevent connection exhaustion in Next.js (especially during hot-reloading in dev), we use a **singleton instance** located at `src/lib/prisma.ts`.
+
+```ts
+import { PrismaClient } from '@prisma/client'
+
+const globalForPrisma = globalThis as unknown as {
+    prisma: PrismaClient | undefined
+}
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+})
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+```
+
+### 5️⃣ Testing the Setup
+
+We created a test API route at `src/app/api/test-db/route.ts` that:
+1.  Connects to the database.
+2.  Upserts a test user.
+3.  Fetches and returns all users.
+
+**Access it at:** `http://localhost:3000/api/test-db`
+
+### 🧠 Reflection
+
+Prisma bridges the gap between our TypeScript application and the PostgreSQL database.
+- **Safety**: Creating a user with an invalid role (e.g., "SUPER_ADMIN") throws a compile-time error, preventing bugs before they run.
+- **Productivity**: Auto-completion for database queries speeds up development significantly.
+- **Maintenance**: Schema migrations are version-controlled, making it easy to roll back or deploy changes safely.
+
+### 📷 Submission Evidence
+1.  **Migration Logs**: Terminal screenshot of `npx prisma migrate dev`.
+2.  **Prisma Studio**: Screenshot of the browser GUI showing seeded data.
+3.  **API Response**: JSON response from `/api/test-db`.
+
+---
+
 ## 📄 License
 
 This project is developed for educational and simulated work purposes only.
