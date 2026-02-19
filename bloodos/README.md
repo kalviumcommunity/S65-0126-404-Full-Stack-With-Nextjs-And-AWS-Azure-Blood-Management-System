@@ -1163,9 +1163,72 @@ Body: { "filename": "report.pdf", "fileType": "application/pdf", "fileSize": 102
 curl -X PUT -T report.pdf "https://bloodos-uploads.s3.amazonaws.com/..."
 ```
 
+
 ---
 
-## 📄 License
+## � Transactional Email Service (Sprint 1 – Assignment 2.25)
+
+We integrated **AWS SES (Simple Email Service)** to send transactional emails — welcome messages, password resets, and notifications. SES was chosen over SendGrid for its deep AWS ecosystem integration and cost-efficiency at scale.
+
+### 1️⃣ Provider: AWS SES
+
+| Feature | AWS SES | SendGrid |
+| :--- | :--- | :--- |
+| Free Tier | 62,000 emails/month (from EC2) | 100 emails/day |
+| DKIM/SPF | Built-in via Route53 | Manual setup |
+| Ecosystem | Native AWS integration | Third-party |
+| Production Approval | Request via AWS console | Automatic |
+
+### 2️⃣ Setup Steps
+
+1. **Verify Sender Email** in AWS SES console (`SES_EMAIL_SENDER`).
+2. Add environment variables from `.env.example`.
+3. For production, request **SES Sandbox Exit** via AWS support.
+
+### 3️⃣ API Usage
+
+```bash
+curl -X POST http://localhost:3000/api/email \
+  -H "Content-Type: application/json" \
+  -d '{"to":"donor@example.com","subject":"Welcome to BloodOS!","templateType":"welcome","userName":"Alice"}'
+```
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "message": "Email sent successfully",
+  "data": { "messageId": "0101019412345678-abc" }
+}
+```
+
+**Failure Response (Missing Field):**
+```json
+{
+  "success": false,
+  "message": "Missing required fields: to, subject",
+  "error": { "code": "E100" }
+}
+```
+
+### 4️⃣ Internal Log (Structured JSON)
+
+```json
+{ "level": "info", "message": "Email sent successfully", "meta": { "to": "donor@example.com", "messageId": "0101..." }, "timestamp": "..." }
+```
+
+### 🧠 Reflection
+
+-   **SPF/DKIM**: Configured via Route53 on the sending domain to improve deliverability and pass spam filters.
+-   **Bounce Handling**: SES automatically handles bounces via SNS notifications — we log and suppress bounced addresses.
+-   **Rate Limits**: SES default is 1 email/second in sandbox. Production can request higher quotas.
+-   **Retry Strategies**: Wrap `sendEmail()` in an exponential backoff retry for transient provider failures.
+-   **Queue for Scale**: For high volume, emails should be pushed to an SQS queue and processed by a separate worker — decoupling email delivery from request handling.
+
+---
+
+## �📄 License
+
 
 
 
