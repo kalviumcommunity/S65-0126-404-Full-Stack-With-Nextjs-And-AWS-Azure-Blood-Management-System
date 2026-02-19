@@ -1268,8 +1268,67 @@ The middleware now handles **two token sources**:
 - **Dynamic routes** make the app infinitely scalable — `/users/[id]` handles millions of profiles without new routes.
 - **`notFound()`** triggers the `not-found.tsx` UI cleanly without a full page reload.
 
+
+---
+
+## 🧩 Component Architecture (Sprint 1 – Assignment 2.27)
+
+We built a modular, scalable component library to ensure visual consistency and developer efficiency across the entire application.
+
+### 1️⃣ Component Hierarchy
+
+```
+<RootLayout>
+  └── <LayoutWrapper>
+        ├── <Header />          → Brand + top nav (sticky)
+        └── flex row
+              ├── <Sidebar />   → Left nav w/ active state
+              └── <main>        → Page children rendered here
+```
+
+### 2️⃣ Folder Structure
+
+```
+src/components/
+  ├── layout/
+  │   ├── Header.tsx       → Sticky branded navbar
+  │   ├── Sidebar.tsx      → Active-route nav sidebar
+  │   └── LayoutWrapper.tsx→ Composes Header + Sidebar
+  └── ui/
+  │   ├── Button.tsx       → Variants: primary/secondary/danger/ghost
+  │   ├── Card.tsx         → Content container with title/footer slots
+  │   └── InputField.tsx   → Accessible labeled input with error state
+  └── index.ts             → Barrel export
+```
+
+### 3️⃣ Barrel Imports
+
+```typescript
+// ✅ Clean — from barrel
+import { Button, Card, Header, Sidebar } from '@/components';
+
+// ❌ Verbose — without barrel
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+```
+
+### 4️⃣ Accessibility Highlights
+
+- `<header role="banner">`, `<aside role="complementary">`, `<main role="main">` — semantic landmarks
+- `aria-current="page"` on active sidebar link
+- `aria-invalid`, `aria-describedby` on InputField for screen readers
+- Skip-to-main-content link in RootLayout for keyboard users
+
+### 🧠 Reflection
+
+- **Reusability**: `<Button>` and `<Card>` are used on 4+ pages — change once, update everywhere.
+- **Scalability**: Adding `<NavItem>` to the `NAV_ITEMS` array in Sidebar instantly adds new routes.
+- **Maintainability**: Barrel exports mean imports never break when files move within the component tree.
+- **Developer Onboarding**: Any new dev can quickly understand the app structure from the clear hierarchy.
+
 ---
 
 ## 📄 License
+
 
 This project is developed for educational and simulated work purposes only.
