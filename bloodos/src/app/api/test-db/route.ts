@@ -14,6 +14,13 @@ export async function GET() {
                 password: 'hashed-password',
                 role: UserRole.DONOR,
             },
+            select: {
+                id: true,
+                email: true,
+                role: true,
+                createdAt: true,
+                updatedAt: true,
+            },
         });
 
         // 2. Fetch all users
