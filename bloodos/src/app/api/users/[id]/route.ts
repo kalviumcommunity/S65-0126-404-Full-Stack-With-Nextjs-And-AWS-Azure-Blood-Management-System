@@ -2,10 +2,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { UserRole } from '@prisma/client';
+import { sendSuccess, sendError } from '@/lib/responseHandler';
+import { ErrorCodes } from '@/lib/errorCodes';
 
+// GET /api/users/[id]
 export async function GET(
     req: Request,
-    { params }: { params: Promise<{ id: string }> } // Correct type for dynamic routes in Next.js 15+
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const { id } = await params;
@@ -23,21 +26,26 @@ export async function GET(
         });
 
         if (!user) {
-            return NextResponse.json(
-                { success: false, error: 'User not found' },
-                { status: 404 }
+            return sendError(
+                'User not found',
+                ErrorCodes.NOT_FOUND,
+                404
             );
         }
 
-        return NextResponse.json({ success: true, data: user });
+        return sendSuccess(user, 'User details fetched successfully');
+
     } catch (error: any) {
-        return NextResponse.json(
-            { success: false, error: 'Failed to fetch user' },
-            { status: 500 }
+        return sendError(
+            'Failed to fetch user',
+            ErrorCodes.DATABASE_ERROR,
+            500,
+            error.message
         );
     }
 }
 
+// PATCH /api/users/[id]
 export async function PATCH(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -61,21 +69,26 @@ export async function PATCH(
             },
         });
 
-        return NextResponse.json({ success: true, data: updatedUser });
+        return sendSuccess(updatedUser, 'User updated successfully');
+
     } catch (error: any) {
         if (error.code === 'P2025') {
-            return NextResponse.json(
-                { success: false, error: 'User not found' },
-                { status: 404 }
+            return sendError(
+                'User not found',
+                ErrorCodes.NOT_FOUND,
+                404
             );
         }
-        return NextResponse.json(
-            { success: false, error: 'Failed to update user' },
-            { status: 500 }
+        return sendError(
+            'Failed to update user',
+            ErrorCodes.INTERNAL_ERROR,
+            500,
+            error.message
         );
     }
 }
 
+// DELETE /api/users/[id]
 export async function DELETE(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -87,20 +100,21 @@ export async function DELETE(
             where: { id },
         });
 
-        return NextResponse.json(
-            { success: true, message: 'User deleted successfully' },
-            { status: 200 }
-        );
+        return sendSuccess(null, 'User deleted successfully');
+
     } catch (error: any) {
         if (error.code === 'P2025') {
-            return NextResponse.json(
-                { success: false, error: 'User not found' },
-                { status: 404 }
+            return sendError(
+                'User not found',
+                ErrorCodes.NOT_FOUND,
+                404
             );
         }
-        return NextResponse.json(
-            { success: false, error: 'Failed to delete user' },
-            { status: 500 }
+        return sendError(
+            'Failed to delete user',
+            ErrorCodes.INTERNAL_ERROR,
+            500,
+            error.message
         );
     }
 }

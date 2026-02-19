@@ -2,9 +2,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { UserRole } from '@prisma/client';
+import { sendSuccess, sendError } from '@/lib/responseHandler';
+import { ErrorCodes } from '@/lib/errorCodes';
 
 // GET /api/users
-// Fetch all users with pagination
 export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
@@ -29,54 +30,60 @@ export async function GET(req: Request) {
             }),
         ]);
 
-        return NextResponse.json({
-            success: true,
-            meta: {
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total / limit),
+        // Construct response with metadata
+        return sendSuccess(
+            {
+                users,
+                pagination: {
+                    total,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(total / limit),
+                }
             },
-            data: users,
-        });
+            'Users fetched successfully'
+        );
+
     } catch (error: any) {
-        return NextResponse.json(
-            { success: false, error: 'Failed to fetch users' },
-            { status: 500 }
+        return sendError(
+            'Failed to fetch users',
+            ErrorCodes.DATABASE_ERROR,
+            500,
+            error.message
         );
     }
 }
 
 // POST /api/users
-// Create a new user
 export async function POST(req: Request) {
     try {
         const body = await req.json();
         const { email, password, role } = body;
 
         if (!email || !password || !role) {
-            return NextResponse.json(
-                { success: false, error: 'Missing required fields' },
-                { status: 400 }
+            return sendError(
+                'Missing required fields (email, password, role)',
+                ErrorCodes.VALIDATION_ERROR,
+                400
             );
         }
 
-        // Check if user already exists
         const existingUser = await prisma.user.findUnique({
             where: { email },
         });
 
         if (existingUser) {
-            return NextResponse.json(
-                { success: false, error: 'User already exists' },
-                { status: 409 }
+            return sendError(
+                'User with this email already exists',
+                ErrorCodes.DUPLICATE_ENTRY,
+                409
             );
         }
 
         const newUser = await prisma.user.create({
             data: {
                 email,
-                password, // In production, hash this password!
+                password, // In production, usually verify hashing here!
                 role: role as UserRole,
             },
             select: {
@@ -87,11 +94,14 @@ export async function POST(req: Request) {
             },
         });
 
-        return NextResponse.json({ success: true, data: newUser }, { status: 201 });
+        return sendSuccess(newUser, 'User created successfully', 201);
+
     } catch (error: any) {
-        return NextResponse.json(
-            { success: false, error: 'Failed to create user' },
-            { status: 500 }
+        return sendError(
+            'Failed to create user',
+            ErrorCodes.INTERNAL_ERROR,
+            500,
+            error.message
         );
     }
 }
