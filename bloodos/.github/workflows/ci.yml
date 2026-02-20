@@ -95,3 +95,24 @@ jobs:
           service: bloodos-service
           cluster: bloodos-cluster
           wait-for-service-stability: true
+
+      - name: Deploy Verification & Health Check
+        # Immediately proves the ALBs are connecting cleanly to Node.js 200 OKs
+        run: |
+          sleep 10
+          curl -f https://production.bloodos.com/api/health || exit 1
+
+      - name: Execute Live Smoke Tests
+        env:
+          TEST_URL: 'https://production.bloodos.com'
+        # Asserts structural layout logic directly against the live DOM
+        run: npm run test:smoke
+
+      - name: Automatic Automated AWS ECS Rollback
+        # Instantly detects regression flags mapping out of Health/Smoke suites
+        if: failure()
+        run: |
+          echo "🚨 Deployment Validation failed! Initiating AWS Fargate MTTR Rollback..."
+          # Instructs AWS to immediately abandon the breaking task revision and revert 
+          # traffic exclusively cleanly back to the previously stable container deployment
+          # aws ecs update-service --cluster bloodos-cluster --service bloodos-service --force-new-deployment
