@@ -12,5 +12,6 @@ export { FormInput } from './ui/FormInput';
 export { ThemeToggle } from './ui/ThemeToggle';
 export { ConfirmModal } from './ui/ConfirmModal';
 export { Loader } from './ui/Loader';
+export { RoleGuard, withRoleGuard } from './ui/RoleGuard';
 
 
