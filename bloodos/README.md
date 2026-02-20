@@ -1328,7 +1328,57 @@ import { Card } from '@/components/ui/Card';
 
 ---
 
+---
+
+## 🌐 Global State Management (Sprint 1 – Assignment 2.28)
+
+We implemented a **Context API + useReducer** state system across two contexts — Auth and UI — with clean custom hooks as the public interface.
+
+### 1️⃣ Provider Tree
+
+```
+<AuthProvider>        ← user, isAuthenticated, login(), logout()
+  <UIProvider>        ← theme, sidebarOpen, toggleTheme(), toggleSidebar()
+    <LayoutWrapper>   
+      {children}      ← Any component can consume via useAuth() / useUI()
+```
+
+### 2️⃣ State Flow (useReducer Actions)
+
+| Context | Actions | Triggered By |
+| :--- | :--- | :--- |
+| **AuthContext** | `LOGIN`, `LOGOUT`, `SET_LOADING` | `login()`, `logout()` |
+| **UIContext** | `TOGGLE_THEME`, `TOGGLE_SIDEBAR`, `SET_SIDEBAR` | `toggleTheme()`, `toggleSidebar()` |
+
+### 3️⃣ Custom Hooks (Public Interface)
+
+```typescript
+// Any component — no prop drilling needed
+const { user, isAuthenticated, login, logout } = useAuth();
+const { theme, isDark, sidebarOpen, toggleTheme, toggleSidebar } = useUI();
+```
+
+### 4️⃣ Console Output
+
+```
+[AuthContext] State → LOGIN  { user: { name: 'Alice Kumar', role: 'DONOR' } }
+[UIContext]   Theme → dark
+[UIContext]   Sidebar → false
+[AuthContext] State → LOGOUT
+```
+
+### 🧠 Reflection
+
+- **No Prop Drilling**: Any leaf component in the tree can `useAuth()` without threading props through parent layers.
+- **useReducer over useState**: Gives predictable, traceable state transitions and makes debugging easy.
+- **Split Contexts**: Auth and UI are in separate contexts — prevents unrelated renders from triggering when only auth state changes.
+- **localStorage Persistence**: Theme preference survives page refresh via `UIProvider`'s `useEffect`.
+- **Scalability**: Adding new global state (e.g., `NotificationContext`) is a simple matter of a new context file + provider — no refactoring needed.
+
+---
+
 ## 📄 License
+
 
 
 This project is developed for educational and simulated work purposes only.
