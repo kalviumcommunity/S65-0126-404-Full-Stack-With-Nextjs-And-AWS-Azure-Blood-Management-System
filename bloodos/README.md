@@ -1663,3 +1663,57 @@ HTTP-only cookies are invisible to JavaScript — cannot be stolen via XSS.
 - queued refresh in authFetch() prevents multiple concurrent refresh calls (N+1 refresh problem)
 
 ---
+
+---
+
+## Role-Based Access Control (RBAC) — Assignment 2.35
+
+Implemented a centralized RBAC system with permission mapping, API enforcement, UI guards, and structured audit logging.
+
+### Roles & Permissions Matrix
+
+| Permission | ADMIN | DONOR | HOSPITAL | NGO |
+| :--- | :---: | :---: | :---: | :---: |
+| read | ✅ | ✅ | ✅ | ✅ |
+| create | ✅ | ✅ | — | — |
+| update | ✅ | ✅ | ✅ | — |
+| delete | ✅ | — | — | — |
+| manage_users | ✅ | — | — | — |
+| view_reports | ✅ | — | ✅ | ✅ |
+
+### Architecture
+
+```
+src/config/roles.ts       — Role + Permission types, ROLE_PERMISSIONS map, helper functions
+src/lib/rbacLogger.ts     — Structured [RBAC] audit logger
+src/lib/withPermission.ts — withAuth + withPermission Higher-Order Components
+src/components/ui/RoleGuard.tsx — UI-level conditional rendering
+```
+
+### Audit Log Format
+
+```
+[RBAC] ✅ ROLE=ADMIN    ACTION=delete       RESOURCE=blood_requests RESULT=ALLOWED USER=abc123
+[RBAC] 🚫 ROLE=DONOR    ACTION=delete       RESOURCE=blood_requests RESULT=DENIED  REASON=Role lacks delete permission
+[RBAC] 🚫 ROLE=NGO      ACTION=update       RESOURCE=blood_requests RESULT=DENIED  REASON=Role lacks update permission
+[RBAC] ✅ ROLE=HOSPITAL  ACTION=view_reports RESOURCE=reports        RESULT=ALLOWED
+```
+
+### Backend vs Frontend Enforcement
+
+Backend is the ONLY real security gate. Frontend guards are UX convenience only:
+
+| Layer | Purpose | Security |
+| :--- | :--- | :--- |
+| `withPermission()` API HOC | Enforce on every request | ✅ Authoritative |
+| `RoleGuard` component | Show/hide UI elements | ⚠️ UX only |
+| `middleware.ts` | Token verification | ✅ Gateway |
+
+### Reflection
+
+- **Scalability**: Adding a new role = one new entry in ROLE_PERMISSIONS map
+- **Maintainability**: Permissions defined once in roles.ts — no scattered permission checks
+- **Auditability**: Every allow/deny logged with role, action, resource, userId, timestamp
+- **Extending to ABAC**: hasPermission() can be augmented with resource ownership checks
+
+---
