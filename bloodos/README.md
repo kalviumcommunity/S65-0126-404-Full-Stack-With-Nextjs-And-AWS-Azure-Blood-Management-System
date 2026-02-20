@@ -1846,3 +1846,73 @@ upgrade-insecure-requests — HTTP subresources upgraded to HTTPS automatically
 - Wildcard CORS (*) effectively means "any website can call our API as the logged-in user"
 
 ---
+
+---
+
+## Managed PostgreSQL — AWS RDS & Azure (Assignment 2.38)
+
+Provisioned and connected a managed PostgreSQL instance with secure configuration, connection pooling, SSL, and production hardening.
+
+### Provider Comparison
+
+| Provider | Service | Advantages | Monitoring |
+| :--- | :--- | :--- | :--- |
+| AWS RDS | Relational Database Service | IAM auth, Multi-AZ, Read Replicas | CloudWatch + Performance Insights |
+| Azure DB | Azure Database for PostgreSQL | Built-in HA, geo-redundancy | Azure Monitor |
+| Supabase | Managed Postgres + API | Free tier, realtime, REST API | Supabase Dashboard |
+| Neon | Serverless Postgres | Branch per PR, scale-to-zero | Neon Console |
+
+### Managed vs Self-Hosted
+
+| Responsibility | Self-Hosted | Managed (RDS/Azure) |
+| :--- | :--- | :--- |
+| OS patching | Manual | Automatic |
+| DB engine upgrades | Manual | Automatic (with control) |
+| Automated backups | Custom scripts | Built-in + retention policy |
+| SSL certificates | Configure yourself | Enforced by default |
+| High availability | Manual setup | Multi-AZ checkbox |
+| Scaling | Manual migration | Console/API click |
+
+### DATABASE_URL Configuration
+
+```bash
+# Local dev (Docker)
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/bloodos"
+
+# AWS RDS Production (private VPC + SSL + pool)
+DATABASE_URL="postgresql://admin:PWD@host.rds.amazonaws.com:5432/bloodos?sslmode=require&connection_limit=10"
+
+# Azure PostgreSQL
+DATABASE_URL="postgresql://admin:PWD@server.postgres.database.azure.com:5432/bloodos?sslmode=require"
+```
+
+### Connection Test
+
+```bash
+# psql CLI verification
+psql -h your-rds-endpoint.amazonaws.com -U bloodos_admin -d bloodos -W
+
+# Test API route
+curl https://your-app.vercel.app/api/health/db
+# Returns: {success: true, latency_ms: 12, server_time: "...", postgres_version: "PostgreSQL 16.x"}
+```
+
+### Production Hardening
+
+- Disable public access — private subnet only, connect via VPC peering or private endpoint
+- SSL enforced — `?sslmode=require` in DATABASE_URL
+- No wildcard inbound rules — Security Group/firewall scoped to app server only
+- Credentials in Secrets Manager — not in .env files committed to git
+- Automated backups — 7-day minimum retention, geo-redundant for production
+- Connection pooling — `?connection_limit=10` prevents "too many connections" error
+- CloudWatch/Azure Monitor alerts — CPU, connections, storage thresholds
+
+### Reflection
+
+- Managed DBs shift undifferentiated heavy lifting to the cloud provider — focus on business logic
+- SSL enforcement is non-negotiable in production — plain TCP exposes all query data
+- Connection pooling is critical — Next.js serverless functions create new connections per invocation
+- Private networking eliminates the largest attack surface — public RDS endpoints are a major risk
+- Automated backups with point-in-time recovery enable sub-minute RPO for critical data
+
+---
