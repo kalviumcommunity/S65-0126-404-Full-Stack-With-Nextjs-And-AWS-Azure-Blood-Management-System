@@ -11,6 +11,26 @@ import { z } from 'zod'; // Presuming Zod is used for runtime validation commonl
  * and a WRITE (POST) mapping protected by strict Input Validation logic.
  *
  * It extracts headers to simulate Authentication middleware.
+ * 
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: Retrieve User mappings natively
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Truncate constraints size
+ *     responses:
+ *       200:
+ *         description: OK structurally resolving users map.
+ *       401:
+ *         description: Bearer verification blocks illegal traces completely.
+ *       500:
+ *         description: Prisma DB limits natively crashed internally.
  */
 
 export async function GET(req: NextRequest) {
@@ -41,6 +61,32 @@ const CreateUserSchema = z.object({
     email: z.string().email(),
     password: z.string().min(6), // A strict requirement
 });
+
+/**
+ * @swagger
+ * /api/users:
+ *   post:
+ *     summary: Provisions an isolated User identity mapped to Database limits safely.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Identity strictly provisioned accurately over Prisma.
+ *       400:
+ *         description: Client failed Zod string bounds check parsing natively.
+ */
 
 export async function POST(req: NextRequest) {
     try {
