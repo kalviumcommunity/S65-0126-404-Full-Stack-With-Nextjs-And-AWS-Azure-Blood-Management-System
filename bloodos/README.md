@@ -2323,3 +2323,40 @@ az webapp deployment slot swap  --resource-group bloodos-group --name bloodos-ap
 A deployment without metrics simply means hoping the application survives. By physically establishing Health Endpoints coupled strictly to `curl` failure constraints, we shifted our MTTR (Recovery speed) purely onto autonomous computing loops ensuring $0$ user downtime regardless of deployment entropy bounds.
 
 ---
+
+## Full-Lifecycle API & System Documentation (Assignment 2.50)
+
+Code written without documentation becomes legacy code instantly. We solved this by generating living, physically executable Open API 3.0 documentation mapped precisely into our Next.js App Router boundary alongside a rigorous system-overview manifesto `ARCHITECTURE.md`.
+
+### Documentation Overview Matrix
+
+| Doc Type | Audience | Purpose | Tool |
+| :--- | :--- | :--- | :--- |
+| **API Endpoints** | Frontend / Mobile Devs | Demonstrates HTTP Contracts seamlessly over JSON payloads without guessing typings. | Swagger UI (`next-swagger-doc`) |
+| **Architecture Index**| Staff Engineers & DevOps | Maps Data Flow, Security Limits, and CI structures seamlessly out of pure Code arrays. | `ARCHITECTURE.md` |
+| **Release Tracker** | SREs & QA | Chronologically locks all structural deployments natively ensuring regressions can easily rollback safely. | `CHANGELOG.md` |
+
+### Swagger / OpenAPI 3.0 Implementation
+
+We avoided external fragmented websites (e.g. Readme.io) by injecting generation logic natively. By mapping `@swagger` JSDoc string closures exactly over our Physical API Controllers (`src/app/api/...`), the documentation is intrinsically bound to the code.
+- **Route Wrapper (`/api-docs`)**: Natively exports the React Server Component displaying interactive Swagger Maps securely.
+- **JSON Pipeline (`/api/swagger`)**: Resolves the Open-API spec as a pure JSON output, empowering developers to instantly 1-click import into **Postman** natively.
+
+### Postman Alternative Context
+For engineers preferring structural testing environments, fetching `/api/swagger` gives you the raw schema mapping logic cleanly.
+- Postman allows mapping `environments` (Staging vs Prod bases) dynamically testing JWT limits globally without retyping inputs.
+
+### System Flow & Deployment Summary (Architecture Highlight)
+
+As laid out structurally inside `ARCHITECTURE.md`:
+1. Traffic penetrates ALBs safely verifying limits natively hitting Next.js Edge routes.
+2. Zod statically rejects structurally invalid mappings cleanly.
+3. Fully isolated, AWS ECR deployed Docker containers safely parse and communicate physical limits across Amazon PostgreSQL boundaries.
+4. CI/CD runs structurally verifying coverage matrix, blocking PR structural leaks permanently prior to merging code natively onto `main`.
+
+### Reflection
+
+- **Living Artifacts Context**: Outdated documentation is worse than zero documentation because it lies to QA testers. Generating Swagger limits from physical Nextjs APIs solves documentation drift. 
+- **Developer Acceleration**: Instead of new-hires spending 2 days reading Prisma logic, they visually read 1 single HTML Swagger UI and instantly comprehend the JWT execution limits confidently ensuring module deployments scale!
+
+---
