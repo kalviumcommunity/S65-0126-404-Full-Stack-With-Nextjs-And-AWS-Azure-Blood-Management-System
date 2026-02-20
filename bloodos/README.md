@@ -1719,3 +1719,67 @@ Backend is the ONLY real security gate. Frontend guards are UX convenience only:
 - **Extending to ABAC**: hasPermission() can be augmented with resource ownership checks
 
 ---
+
+---
+
+## OWASP Input Sanitization (Assignment 2.36)
+
+Implemented a defense-in-depth security pipeline following OWASP Top 10 guidelines.
+
+### Validation vs Sanitization vs Encoding
+
+| Concept | What it does | Example |
+| :--- | :--- | :--- |
+| **Validation** | Reject bad structure | Zod: email must be valid format |
+| **Sanitization** | Clean bad content | Strip `<script>` tags from input |
+| **Encoding** | Escape output safely | React auto-escapes `{userInput}` |
+
+### OWASP Security Pipeline (Per API Route)
+
+```
+User Input
+  → Zod validation (reject malformed structure)
+  → sanitizeStrict / sanitizeRich (strip XSS payloads)
+  → truncate (enforce length limits)
+  → Prisma parameterized query (SQLi safe by design)
+  → Sanitized content stored in DB
+  → React renders safely (auto-escaped output)
+```
+
+### Before / After Examples
+
+| Attack | Raw Input | After Sanitization |
+| :--- | :--- | :--- |
+| XSS Script | `<script>alert("Hacked")</script>` | `""` (empty) |
+| Event Handler | `<img onerror="steal()">` | `""` (empty) |
+| SQLi (Prisma) | `' OR 1=1 --` | Safe bound parameter |
+| Mixed | `<b>Hi</b><script>...</script>` | `<b>Hi</b>` |
+
+### Security Checklist
+
+| Threat | Status |
+| :--- | :--- |
+| XSS via form input | ✅ sanitize-html |
+| SQL Injection | ✅ Prisma parameterized |
+| Cookie theft | ✅ httpOnly refresh token |
+| CSRF | ✅ sameSite=Strict |
+| Payload bloat | ✅ Zod max + truncate() |
+| Unsafe rendering | ✅ React auto-escape |
+
+### Key Files
+
+| File | Purpose |
+| :--- | :--- |
+| `src/utils/sanitize.ts` | sanitizeStrict / sanitizeRich / sanitizeObject / logSanitization |
+| `src/lib/withSanitizedBody.ts` | Middleware HOC — auto-sanitizes all string body fields |
+| `src/app/api/comments/route.ts` | Full pipeline: Zod + sanitize + Prisma |
+
+### Reflection
+
+- Security is layered — no single tool is sufficient
+- Backend MUST sanitize even if the frontend validates — never trust the client
+- Prisma eliminates SQLi architecturally — raw string interpolation is impossible via the ORM client
+- React's auto-escaping handles most output XSS — dangerouslySetInnerHTML should be avoided
+- sanitize-html provides defense against stored XSS in user-generated content
+
+---
