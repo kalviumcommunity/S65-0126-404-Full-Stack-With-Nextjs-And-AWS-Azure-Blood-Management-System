@@ -1593,3 +1593,75 @@ Accessibility:
 - **Scalability**: Each route can have its own loading/error UI — granular control
 
 ---
+
+---
+
+## JWT Auth — Access & Refresh Tokens (Assignment 2.34)
+
+Implemented a dual-token authentication system with automatic refresh flow and HTTP-only cookie security.
+
+### Token Architecture
+
+| Property | Access Token | Refresh Token |
+| :--- | :--- | :--- |
+| Expiry | 15 minutes | 7 days |
+| Storage | Memory (JS variable) | HTTP-only cookie |
+| Secret | JWT_SECRET | JWT_REFRESH_SECRET |
+| Transport | Authorization: Bearer | Cookie (auto) |
+| JS Accessible | Yes (memory only) | No (httpOnly) |
+
+### Security Measures
+
+| Threat | Risk | Mitigation |
+| :--- | :--- | :--- |
+| XSS | Steal tokens from storage | Refresh token in httpOnly cookie — JS cannot access |
+| CSRF | Forge authenticated requests | sameSite=Strict — cross-site requests blocked |
+| Token replay | Reuse stolen access token | 15m expiry limits exposure window |
+| Refresh replay | Reuse stolen refresh token | Token rotation — every refresh issues a new token |
+| Enumeration | Discover valid emails | Generic "Invalid email or password" response |
+
+### Token Flow Sequence
+
+```
+POST /api/auth/login
+  → Validate credentials (bcrypt compare)
+  → generateAccessToken(userId, role)  → returned in response.body
+  → generateRefreshToken(userId, role) → Set-Cookie: refresh_token (httpOnly)
+
+Client stores accessToken in memory variable (NOT localStorage)
+
+GET /api/auth/me
+  → Authorization: Bearer <accessToken>
+  → verifyAccessToken() → 200 OK + user payload
+
+[15 minutes pass — access token expires]
+
+GET /api/auth/me
+  → 401 { expired: true }
+
+authFetch() detects expired → calls:
+POST /api/auth/refresh
+  → Reads refresh_token cookie (browser sends automatically)
+  → verifyRefreshToken()
+  → generateAccessToken() → new 15m token
+  → generateRefreshToken() → NEW cookie (token rotation)
+  → Returns { accessToken: "..." }
+
+authFetch() retries original request with new token
+```
+
+### Why NOT localStorage?
+
+localStorage is accessible to any JavaScript on the page.
+A single XSS vulnerability exposes all tokens forever.
+HTTP-only cookies are invisible to JavaScript — cannot be stolen via XSS.
+
+### Reflection
+
+- Dual secrets (JWT_SECRET + JWT_REFRESH_SECRET) mean a compromised access secret doesn't expose refresh tokens
+- Token rotation means leaked refresh tokens self-invalidate on next legitimate use
+- Memory-based access token storage eliminates the most common XSS attack vector
+- 15m access token expiry provides a small attack window even if intercepted
+- queued refresh in authFetch() prevents multiple concurrent refresh calls (N+1 refresh problem)
+
+---
