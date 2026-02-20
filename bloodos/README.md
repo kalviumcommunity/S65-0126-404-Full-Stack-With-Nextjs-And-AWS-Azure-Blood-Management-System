@@ -2053,3 +2053,38 @@ Configured `.github/workflows/deploy.yml` with the following pipeline constraint
 - **Security**: Stripping away `node_modules/devDependencies` and running as a non-root user in the `runner` stage significantly minimizes the OS-level attack footprint of the container. 
 
 ---
+
+## Custom Domain & SSL Configuration (Assignment 2.43)
+
+Configured a custom domain with fully managed, automatically renewing SSL/TLS certificates using AWS Route 53 and AWS Certificate Manager (ACM) mapped to the production Fargate Load Balancer.
+
+### DNS Architecture (AWS Route 53)
+
+| Record Type | Name | Target | Purpose |
+| :--- | :--- | :--- | :--- |
+| **NS** | `bloodos.com` | AWS Name Servers | Delegates registrar domain control strictly to Route 53. |
+| **CNAME** | `_acme.bloodos.com` | ACM Validation Hash | Proves domain ownership cryptographically so AWS issues the SSL cert. |
+| **A (Alias)** | `bloodos.com` | ALB DNS String | "Alias" is a proprietary AWS record allowing the root apex to dynamically point to a Load Balancer (since true CNAMEs at root are illegal per DNS RFC). |
+| **CNAME** | `www.bloodos.com` | `bloodos.com` | Routes the `www` subdomain to the primary root. |
+
+### SSL & HTTPS Enforcement
+
+- **Automatic Renewal**: The AWS ACM certificate automatically renews dynamically before expiration. There are no manual CSRs or `certbot` cronjobs required on the container.
+- **TLS Cypher Hardening**: The Load Balancer terminates the SSL connection enforcing modern TLS 1.2 minimum protocols, instantly rejecting clients on compromised legacy encryption standard like SSLv3.
+- **HTTP 301 Redirect**: Port 80 is kept open *strictly* to intercept unencrypted traffic and return a permanent `301 Moved Permanently` redirect to port 443 (HTTPS), preventing SSL-stripping MITM attacks.
+
+### Verification Matrix
+
+How to prove the security posture of the deployed domain:
+
+1. **Browser Padlock**: Visit `https://bloodos.com` and click the padlock (🔒). Ensure the issuer reads *Amazon RSA 2048 M01*.
+2. **Force HTTPS Redirect**: Run `curl -I http://bloodos.com`. It must return `HTTP/1.1 301 Moved Permanently` and `Location: https://bloodos.com`.
+3. **SSL Benchmark Check**: Submit the public domain to [SSLLabs.com](https://www.ssllabs.com/ssltest/). The configuration achieves an **A Rating** natively because AWS ALBs continuously patch vulnerabilities (e.g., POODLE, Heartbleed) under the hood.
+
+### Reflection
+
+- **Security Priority**: Operating any web application without HTTPS today is professional negligence. Cleartext traffic allows intermediate ISPs and malicious actors to inject scripts and steal login tokens.
+- **Simplicity of Managed Certs**: Managing SSL on custom EC2/Nginx instances was historically a tedious process involving cron jobs and LetsEncrypt timeouts. ACM shifts this burden away entirely.
+- **DNS Propagation Reality**: Due to global ISP caching, NS record switches inherently take up to 48 hours to complete. Using a `TTL` (Time To Live) of 60 seconds *before* major migrations prevents long-lasting outages.
+
+---
