@@ -1491,3 +1491,40 @@ const contactSchema = z.object({
 
 
 This project is developed for educational and simulated work purposes only.
+---
+
+## Feedback UI & Responsive Theming (Assignment 2.31)
+
+Complete feedback system: toasts, modals, loaders + light/dark responsive design.
+
+### Toast System (react-hot-toast)
+- `toast.success()` — API success, 4s auto-dismiss
+- `toast.error()` — API failure, 4s auto-dismiss
+- `toast.loading()` → `toast.success(id)` — async operation lifecycle
+
+### ConfirmModal Accessibility
+- `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, `aria-describedby`
+- ESC closes, backdrop click closes, focus on Cancel button on open
+- Body scroll locked while open
+
+### Full Delete Flow
+User clicks Delete → Modal opens → Confirm → toast.loading() → API → toast.success/error
+
+### Dark Mode Strategy
+- `darkMode: 'class'` in tailwind.config.js
+- CSS custom properties swapped in `.dark {}` class
+- localStorage persistence + system prefers-color-scheme detection
+- Smooth 0.3s background-color transition on html element
+
+### Reflection
+- Toasts give instant, non-blocking feedback — improved UX
+- Modals build trust before destructive actions
+- Loaders with aria-live ensure screen reader users are informed
+- CSS custom properties ensure theme consistency without style duplication
+- WCAG: focus-visible, aria-pressed, aria-label on all interactive elements
+
+---
+
+## License
+
+This project is developed for educational and simulated work purposes only.

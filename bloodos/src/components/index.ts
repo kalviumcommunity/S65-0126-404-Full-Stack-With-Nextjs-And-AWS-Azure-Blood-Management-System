@@ -9,4 +9,8 @@ export { Button } from './ui/Button';
 export { Card } from './ui/Card';
 export { InputField } from './ui/InputField';
 export { FormInput } from './ui/FormInput';
+export { ThemeToggle } from './ui/ThemeToggle';
+export { ConfirmModal } from './ui/ConfirmModal';
+export { Loader } from './ui/Loader';
+
 
