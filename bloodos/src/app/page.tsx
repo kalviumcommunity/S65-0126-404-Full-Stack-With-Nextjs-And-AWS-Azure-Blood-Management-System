@@ -1,72 +1,146 @@
 
-import type { Metadata } from 'next';
-import Link from 'next/link';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Home',
-  description: 'BloodOS — A mission-driven platform connecting blood donors with hospitals and NGOs.',
-};
+import { useAuth } from '@/hooks/useAuth';
+import { useUI } from '@/hooks/useUI';
+import { Button, Card } from '@/components';
 
+/**
+ * Home Page — demonstrates AuthContext and UIContext in action.
+ * Shows login/logout, theme toggle, sidebar toggle, and real-time state.
+ */
 export default function HomePage() {
+  const { user, isAuthenticated, isLoading, login, logout } = useAuth();
+  const { theme, isDark, sidebarOpen, toggleTheme, toggleSidebar } = useUI();
+
+  const handleLogin = () => {
+    login({
+      id: 'usr_001',
+      name: 'Alice Kumar',
+      email: 'alice@bloodos.com',
+      role: 'DONOR',
+    });
+  };
+
+  const textPrimary = isDark ? '#f9fafb' : '#111827';
+  const textSecondary = isDark ? '#9ca3af' : '#6b7280';
+
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center', padding: '60px 24px' }}>
-      {/* Hero */}
-      <div style={{
-        background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
-        borderRadius: '16px',
-        padding: '60px 40px',
-        color: '#fff',
-        marginBottom: '48px',
-      }}>
-        <div style={{ fontSize: '64px', marginBottom: '16px' }}>🩸</div>
-        <h1 style={{ fontSize: '40px', fontWeight: 800, margin: '0 0 16px' }}>Welcome to BloodOS</h1>
-        <p style={{ fontSize: '18px', opacity: 0.9, maxWidth: '500px', margin: '0 auto 32px' }}>
-          Connecting blood donors with hospitals and NGOs — saving lives, one drop at a time.
-        </p>
-        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link href="/login" style={{
-            background: '#fff',
-            color: '#dc2626',
-            padding: '12px 28px',
-            borderRadius: '8px',
-            fontWeight: 700,
-            textDecoration: 'none',
-            fontSize: '16px',
-          }}>
-            Get Started →
-          </Link>
-          <Link href="/users" style={{
-            background: 'rgba(255,255,255,0.15)',
-            color: '#fff',
-            padding: '12px 28px',
-            borderRadius: '8px',
-            fontWeight: 600,
-            textDecoration: 'none',
-            fontSize: '16px',
-            border: '2px solid rgba(255,255,255,0.4)',
-          }}>
-            View Users
-          </Link>
-        </div>
+    <div style={{ maxWidth: '800px', color: textPrimary }}>
+      <h1 style={{ fontSize: '26px', fontWeight: 800, marginBottom: '6px', color: textPrimary }}>
+        🌐 Global State Demo
+      </h1>
+      <p style={{ color: textSecondary, marginBottom: '32px', fontSize: '14px' }}>
+        Live view of AuthContext + UIContext — Assignment 2.28
+      </p>
+
+      {/* ── State Inspector ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
+
+        <Card title="🔐 Auth State" subtitle="From AuthContext via useAuth()" accentColor="#dc2626">
+          <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', marginTop: '8px' }}>
+            <tbody>
+              {[
+                { key: 'isAuthenticated', value: isAuthenticated.toString() },
+                { key: 'isLoading', value: isLoading.toString() },
+                { key: 'user.name', value: user?.name ?? 'null' },
+                { key: 'user.role', value: user?.role ?? 'null' },
+                { key: 'user.email', value: user?.email ?? 'null' },
+              ].map(({ key, value }) => (
+                <tr key={key} style={{ borderBottom: `1px solid ${isDark ? '#374151' : '#f3f4f6'}` }}>
+                  <td style={{ padding: '6px 0', color: textSecondary, fontFamily: 'monospace' }}>{key}</td>
+                  <td style={{
+                    padding: '6px 0',
+                    fontWeight: 600,
+                    fontFamily: 'monospace',
+                    color: value === 'null' ? '#9ca3af' : value === 'true' ? '#16a34a' : textPrimary,
+                  }}>
+                    {value}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+
+        <Card title="🎨 UI State" subtitle="From UIContext via useUI()" accentColor="#7c3aed">
+          <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', marginTop: '8px' }}>
+            <tbody>
+              {[
+                { key: 'theme', value: theme },
+                { key: 'isDark', value: isDark.toString() },
+                { key: 'sidebarOpen', value: sidebarOpen.toString() },
+              ].map(({ key, value }) => (
+                <tr key={key} style={{ borderBottom: `1px solid ${isDark ? '#374151' : '#f3f4f6'}` }}>
+                  <td style={{ padding: '6px 0', color: textSecondary, fontFamily: 'monospace' }}>{key}</td>
+                  <td style={{
+                    padding: '6px 0',
+                    fontWeight: 600,
+                    fontFamily: 'monospace',
+                    color: value === 'dark' ? '#7c3aed' : value === 'true' ? '#16a34a' : textPrimary,
+                  }}>
+                    {value}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
       </div>
 
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
-        {[
-          { label: 'Donors Registered', value: '12,450' },
-          { label: 'Blood Requests', value: '3,200' },
-          { label: 'Lives Saved', value: '8,900' },
-        ].map(({ label, value }) => (
-          <div key={label} style={{
-            background: '#fff',
-            borderRadius: '12px',
-            padding: '28px',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+      {/* ── Auth Actions ── */}
+      <Card title="Auth Actions" subtitle="dispatch({ type: 'LOGIN' | 'LOGOUT' })" accentColor="#dc2626">
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '12px' }}>
+          {!isAuthenticated ? (
+            <Button
+              label={isLoading ? 'Signing in...' : 'Login as Alice Kumar'}
+              variant="primary"
+              isLoading={isLoading}
+              onClick={handleLogin}
+            />
+          ) : (
+            <Button
+              label={`Logout (${user?.name})`}
+              variant="danger"
+              onClick={logout}
+            />
+          )}
+        </div>
+
+        {isAuthenticated && (
+          <div style={{
+            marginTop: '16px',
+            padding: '12px 16px',
+            background: '#f0fdf4',
+            borderRadius: '8px',
+            fontSize: '13px',
+            color: '#16a34a',
+            fontWeight: 600,
           }}>
-            <div style={{ fontSize: '32px', fontWeight: 800, color: '#dc2626' }}>{value}</div>
-            <div style={{ color: '#6b7280', fontSize: '14px', marginTop: '4px' }}>{label}</div>
+            ✅ Logged in as <strong>{user?.name}</strong> ({user?.role})
           </div>
-        ))}
+        )}
+      </Card>
+
+      {/* ── UI Actions ── */}
+      <div style={{ marginTop: '20px' }}>
+        <Card title="UI Actions" subtitle="dispatch({ type: 'TOGGLE_THEME' | 'TOGGLE_SIDEBAR' })" accentColor="#7c3aed">
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '12px' }}>
+            <Button
+              label={isDark ? '☀️ Switch to Light' : '🌙 Switch to Dark'}
+              variant="secondary"
+              onClick={toggleTheme}
+            />
+            <Button
+              label={sidebarOpen ? '◀ Close Sidebar' : '▶ Open Sidebar'}
+              variant="ghost"
+              onClick={toggleSidebar}
+            />
+          </div>
+          <p style={{ marginTop: '12px', fontSize: '12px', color: textSecondary, fontFamily: 'monospace' }}>
+            Theme persisted to: localStorage[&apos;bloodos_theme&apos;] = &apos;{theme}&apos;
+          </p>
+        </Card>
       </div>
     </div>
   );
