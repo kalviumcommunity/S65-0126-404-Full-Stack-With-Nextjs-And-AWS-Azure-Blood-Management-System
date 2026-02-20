@@ -1,44 +1,72 @@
 
+import { v4 as uuidv4 } from 'uuid';
+
 /**
- * Structured Logger using standard console methods
- * ensuring consistent JSON formatting for observability tools.
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Structured JSON Logger
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Outputs logs in a predictable JSON format optimized for CloudWatch & Azure Monitor.
+ * This guarantees easy metric filtering, Dashboard analytics, and automatic mapping
+ * of Correlation IDs to track a single request across multiple microservices.
  */
 
-type LogLevel = 'info' | 'error' | 'warn' | 'debug';
-
-interface LogEntry {
-    level: LogLevel;
+export interface LogPayload {
+    level: 'info' | 'warn' | 'error' | 'debug';
+    requestId: string;
+    endpoint?: string;
+    method?: string;
     message: string;
-    meta?: Record<string, any>;
-    timestamp: string;
+    error?: string | Record<string, unknown>;
+    metadata?: Record<string, unknown>;
 }
 
-const formatLog = (level: LogLevel, message: string, meta?: Record<string, any>): LogEntry => {
-    return {
-        level,
-        message,
-        meta,
-        timestamp: new Date().toISOString(),
-    };
-};
+class StructuredLogger {
+    private formatLog(payload: LogPayload) {
+        // Generate ISO Timestamp for exact chronological querying in CloudWatch
+        const logEntry = {
+            timestamp: new Date().toISOString(),
+            ...payload,
+        };
 
-export const logger = {
-    info: (message: string, meta?: Record<string, any>) => {
-        // In production, we assume stdout is captured by a logging agent (e.g., CloudWatch, Datadog)
-        console.log(JSON.stringify(formatLog('info', message, meta)));
-    },
+        // Use JSON.stringify so AWS/Azure parse it as native fields natively, not as a raw string
+        return JSON.stringify(logEntry);
+    }
 
-    error: (message: string, meta?: Record<string, any>) => {
-        console.error(JSON.stringify(formatLog('error', message, meta)));
-    },
+    public info(message: string, reqContext: { requestId: string; path?: string; method?: string }, meta?: Record<string, unknown>) {
+        console.info(this.formatLog({
+            level: 'info',
+            requestId: reqContext.requestId,
+            endpoint: reqContext.path,
+            method: reqContext.method,
+            message,
+            metadata: meta,
+        }));
+    }
 
-    warn: (message: string, meta?: Record<string, any>) => {
-        console.warn(JSON.stringify(formatLog('warn', message, meta)));
-    },
+    public warn(message: string, reqContext: { requestId: string; path?: string; method?: string }, meta?: Record<string, unknown>) {
+        console.warn(this.formatLog({
+            level: 'warn',
+            requestId: reqContext.requestId,
+            endpoint: reqContext.path,
+            method: reqContext.method,
+            message,
+            metadata: meta,
+        }));
+    }
 
-    debug: (message: string, meta?: Record<string, any>) => {
-        if (process.env.NODE_ENV !== 'production') {
-            console.debug(JSON.stringify(formatLog('debug', message, meta)));
-        }
-    },
-};
+    public error(message: string, errorObj: unknown, reqContext: { requestId: string; path?: string; method?: string }) {
+        console.error(this.formatLog({
+            level: 'error',
+            requestId: reqContext.requestId,
+            endpoint: reqContext.path,
+            method: reqContext.method,
+            message,
+            error: errorObj instanceof Error ? { message: errorObj.message, stack: errorObj.stack } : String(errorObj),
+        }));
+    }
+}
+
+export const logger = new StructuredLogger();
+
+// Helper to generate a correlation ID if the client didn't provide one via header
+export const generateCorrelationId = () => uuidv4();
