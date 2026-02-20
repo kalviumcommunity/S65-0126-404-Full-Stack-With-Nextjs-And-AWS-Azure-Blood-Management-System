@@ -1916,3 +1916,53 @@ curl https://your-app.vercel.app/api/health/db
 - Automated backups with point-in-time recovery enable sub-minute RPO for critical data
 
 ---
+
+## Secure Object Storage — AWS S3 / Azure Blob (Assignment 2.39)
+
+Implemented direct cloud uploads using cryptographically signed, short-lived URLs, enforcing least-privilege IAM and zero-trust file validation.
+
+### Provider Comparison
+
+| Provider | Service | Access Model | Temporary Access Method |
+| :--- | :--- | :--- | :--- |
+| AWS | S3 | IAM Roles / Bucket Policies | Presigned URLs (v4 Signature) |
+| Azure | Blob Storage | RBAC / Access Policies | Shared Access Signature (SAS) |
+
+### Upload Architecture: Presigned URLs
+
+By generating a temporary URL on the backend, we bypass the Next.js server for the actual file upload:
+
+1. **Client** requests upload for `image.png` (2MB).
+2. **Backend** validates user auth, file size, and mime type.
+3. **Backend** signs a PUT URL using AWS IAM keys (valid for 60s).
+4. **Client** uploads bytes directly to AWS S3 using the temporary URL.
+
+### Security Implementation
+
+| Layer | Implementation |
+| :--- | :--- |
+| **IAM Policy** | Backend user has ONLY `s3:PutObject` and `s3:GetObject` |
+| **URL Expiry** | Presigned URLs expire strictly in 60 seconds |
+| **Validation** | Zod/manual check enforces 5MB limit & strict MIME types |
+| **Direct Upload** | Backend memory/CPU is never exhausted by large file streams |
+| **Object Key** | Scoped to `/uploads/users/{userId}/{uuid}` to prevent overwrite/IDOR |
+
+### Lifecycle & Cost Management
+
+- **Lifecycle Rules**: Auto-delete unreferenced uploads after 30 days. Auto-transition old media to Standard-IA (Infrequent Access) to save costs.
+- **Cost**: S3 charges for storage ($/GB) and request counts (PUT/GET). Direct uploads save Vercel/Next.js function execution costs.
+
+### Production Hardening
+
+- **Block Public Access**: Enable "Block all public access" on the S3 bucket. Serve files back through CloudFront or presigned GET URLs.
+- **HTTPS Only**: S3 policies configured to reject `aws:SecureTransport: "false"`.
+- **CORS Restricted**: S3 CORS rules limited to the specific frontend origin (`https://bloodos.com`) with `PUT` allowed.
+
+### Reflection
+
+- **Architecture**: Bypassing the server for file buffering is critical for serverless environments (Vercel 10s timeout, memory limits).
+- **Security**: Presigned URLs eliminate the need to expose long-lived AWS credentials to the browser.
+- **Validation**: Enforcing `ContentType` in the S3 command ensures attackers cannot upload an executable pretending to be a PNG.
+- **Scale**: Cloud storage is infinitely scalable compared to local disk storage on traditional VPS servers.
+
+---
