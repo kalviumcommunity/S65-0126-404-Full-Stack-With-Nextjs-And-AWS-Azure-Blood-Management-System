@@ -2088,3 +2088,45 @@ How to prove the security posture of the deployed domain:
 - **DNS Propagation Reality**: Due to global ISP caching, NS record switches inherently take up to 48 hours to complete. Using a `TTL` (Time To Live) of 60 seconds *before* major migrations prevents long-lasting outages.
 
 ---
+
+## Cloud Logging & Monitoring (Assignment 2.44)
+
+Implemented a robust cloud observability strategy consisting of **Structured JSON Logging**, **AWS CloudWatch (or Azure Monitor)** aggregation, Metric filters, and actionable alerting matrices.
+
+### The Observability Philosophy
+
+| Layer | Implementation | Purpose |
+| :--- | :--- | :--- |
+| **Logs** | Structured JSON (`timestamp`, `level`, `requestId`) | Granular, searchable records for Root Cause Analysis (RCA). |
+| **Metrics** | CloudWatch Metric Filters (e.g., `$.level = "error"`) | Time-series data converting raw logs into graphable math. |
+| **Alerts** | AWS SNS / EventBridge Triggers | Automated notifications (PagerDuty/Slack) when metrics exceed thresholds. |
+
+### Structured JSON Execution
+
+We abandoned basic `console.log("Saving user")` in favor of a rigid JSON schema.
+- **Why?** When thousands of backend requests execute simultaneously, simple text logs dangerously interleave. 
+- By capturing `x-correlation-id` at the edge (Load balancer or Next.js middleware) and explicitly embedding it into every single `logger.info()` and `logger.error()` call, we can map the exact chronological lifecycle of any single individual user's request.
+- **Cloud ingestion**: AWS CloudWatch natively unpacks JSON keys, meaning we can execute powerful SQL-like tracing queries natively in the cloud dashboard: `fields @timestamp, @message | filter requestId="web-xyz123"`
+
+### Native Cloud Configuration (AWS ECS)
+
+1. **ECS Log Driver**: Configured the Fargate task definition with the `awslogs` driver sending `stdout` and `stderr` natively to the `/ecs/bloodos-prod` CloudWatch log group.
+2. **Metric Filters**: Instructed CloudWatch to scan the incoming JSON streams for the exact syntax `{ $.level = "error" }`. Every detection dynamically increments a custom `AppErrorCount` metric.
+3. **Dashboards**: Configured a single pane-of-glass UI tracking:
+   - *TargetResponseTime* (Latency)
+   - *CPUUtilization* (Infrastructure health)
+   - *AppErrorCount* (Software health)
+4. **Alert Alarms**: Created an alarm triggering an SNS email dispatch if `AppErrorCount > 10` within a sliding 5-minute window.
+
+### Retention & Cost Architecture
+
+Logs are expensive. A highly trafficked API can generate Terabytes of text per month.
+- **Retention**: Configured a strict **14-day retention policy** on the active CloudWatch Log Group.
+- **Cold Storage Archive**: (Optional extension) After 14 days, logs are automatically purged or shipped to AWS S3 Glacier for infinite, ultra-cheap compliance retention (auditing purposes).
+
+### Reflection
+
+- **Predictability**: It is completely impossible to operate a production application effectively without centralized structured logs. When a user reports a blank screen, digging into a VPS via SSH with `grep` does not scale.
+- **Signal vs Noise**: By creating explicit `logger.error()` mappings tied to Alarms, developers are not spammed with general "info" traces, massively reducing Alert Fatigue.
+
+---
