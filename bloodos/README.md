@@ -1373,9 +1373,66 @@ const { theme, isDark, sidebarOpen, toggleTheme, toggleSidebar } = useUI();
 - **localStorage Persistence**: Theme preference survives page refresh via `UIProvider`'s `useEffect`.
 - **Scalability**: Adding new global state (e.g., `NotificationContext`) is a simple matter of a new context file + provider — no refactoring needed.
 
+
+---
+
+## ⚡ SWR Data Fetching (Sprint 1 – Assignment 2.29)
+
+We implemented **SWR (stale-while-revalidate)** for client-side data fetching on the `/users` page, providing instant cache responses with automatic background revalidation.
+
+### 1️⃣ What is SWR?
+
+SWR returns **stale (cached) data immediately**, then revalidates in the background and updates the UI when fresh data arrives. This gives users instant feedback while staying up-to-date.
+
+```
+Request → Cache Hit? → Return stale data immediately
+                    → Revalidate in background
+                    → Update UI with fresh data
+```
+
+### 2️⃣ SWR vs Fetch API
+
+| Feature | Plain `fetch` | SWR |
+| :--- | :--- | :--- |
+| Caching | ❌ None | ✅ Built-in |
+| Deduplication | ❌ No | ✅ Automatic |
+| Revalidation | ❌ Manual | ✅ On focus, interval |
+| Loading state | Manual | ✅ `isLoading` |
+| Error state | Manual | ✅ `error` |
+| Optimistic UI | Complex | ✅ `mutate()` |
+
+### 3️⃣ Revalidation Config
+
+```typescript
+useSWR('/api/users', fetcher, {
+  revalidateOnFocus: true,    // Re-fetch when user returns to tab
+  refreshInterval: 30_000,    // Poll every 30 seconds
+  onErrorRetry: (err, _key, _config, revalidate, { retryCount }) => {
+    if (err.status === 404) return;   // Never retry 404
+    if (retryCount >= 3) return;      // Max 3 retries
+    setTimeout(() => revalidate({ retryCount }), 3000 * retryCount);
+  },
+});
+```
+
+### 4️⃣ Cache Invalidation After Mutation
+
+```typescript
+// After POST /api/users succeeds:
+mutate('/api/users');  // Triggers SWR to refetch → UI updates automatically
+```
+
+### 🧠 Reflection
+
+- **Performance**: SWR deduplicates identical requests — 10 components using the same key share one network call.
+- **UX**: Cached data displays instantly; no blank loading screens on revisit.
+- **Trade-offs**: Stale data may briefly show outdated content — mitigated with `revalidateOnFocus`.
+- **Scalability**: SWR's key-based caching mirrors our Redis layer — the same Cache-Aside pattern at the client level.
+
 ---
 
 ## 📄 License
+
 
 
 
