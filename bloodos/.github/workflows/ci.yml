@@ -1,0 +1,97 @@
+name: Continuous Integration & Deployment (CI/CD)
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Concurrency rules prevent parallel runs on the same branch from colliding,
+# especially critical to prevent ECS deployment race conditions.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-and-build:
+    name: Lint, Test & Build (CI)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        # npm ci is significantly faster than npm install and guarantees an exact 
+        # reproduction of package-lock.json without modifying it.
+        run: npm ci
+
+      - name: Run ESLint
+        # Fail Fast: Stop the pipeline instantly if syntax formatting is broken
+        run: npm run lint
+
+      - name: Run Unit & Integration Tests (Coverage Enforcement)
+        # Executes both RTL unit tests and Supertest API tests.
+        # Fails the build completely if globally enforced 80% boundaries are not met.
+        run: npm run test:coverage
+
+      - name: Build Next.js Production Bundle
+        # Validates that compiling TS to JS and generating standalone outputs works.
+        # Critical to run BEFORE Docker staging to catch compile-time TS errors.
+        run: npm run build
+
+  deploy-production:
+    name: AWS ECS Fargate Deployment (CD)
+    needs: validate-and-build
+    # Only deploy if previous CI checks passed AND the trigger was a merge to main branch
+    if: github.repository == 'kalviumcommunity/S65-0126-404-Full-Stack-With-Nextjs-And-AWS-Azure-Blood-Management-System' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push Docker Image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: bloodos-repo
+          IMAGE_TAG: ${{ github.sha }} 
+        run: |
+          # Use Git SHA for immutable container tracking
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      - name: Render new ECS task definition
+        id: render-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: .aws/task-definition.json
+          container-name: bloodos-container
+          image: ${{ steps.login-ecr.outputs.registry }}/bloodos-repo:${{ github.sha }}
+
+      - name: Deploy to Amazon ECS Service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-task-def.outputs.task-definition }}
+          service: bloodos-service
+          cluster: bloodos-cluster
+          wait-for-service-stability: true
