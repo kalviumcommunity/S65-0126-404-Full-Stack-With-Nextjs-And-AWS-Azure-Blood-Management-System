@@ -1,6 +1,32 @@
 import { NextResponse } from 'next/server';
 
 /**
+ * @swagger
+ * /api/health:
+ *   get:
+ *     summary: Deployment Health Hook
+ *     description: Lightweight load-balancer verification endpoint securely mapped to Native Node execution without Database invocation bounds.
+ *     responses:
+ *       200:
+ *         description: Node structure bounds responding correctly.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: OK
+ *                 uptime:
+ *                   type: number
+ *                   example: 120.45
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                 version:
+ *                   type: string
+ *                   example: 1.0.0
+ * 
  * ─────────────────────────────────────────────────────────────────────────────
  * Deployment Health Check API
  * ─────────────────────────────────────────────────────────────────────────────
