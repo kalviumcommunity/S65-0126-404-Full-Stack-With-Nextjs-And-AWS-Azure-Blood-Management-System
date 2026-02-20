@@ -1781,3 +1781,66 @@ User Input
 - sanitize-html provides defense against stored XSS in user-generated content
 
 ---
+
+---
+
+## HTTPS, HSTS, CSP & CORS (Assignment 2.37)
+
+Implemented a full security header stack following OWASP and browser security best practices.
+
+### Security Headers Reference
+
+| Header | Prevents | Value |
+| :--- | :--- | :--- |
+| `Strict-Transport-Security` | MITM, SSL stripping | `max-age=63072000; includeSubDomains; preload` |
+| `Content-Security-Policy` | XSS, data injection | `default-src 'self'; script-src 'self'; frame-ancestors 'none'` |
+| `X-Frame-Options` | Clickjacking | `DENY` |
+| `X-Content-Type-Options` | MIME sniffing | `nosniff` |
+| `Referrer-Policy` | URL leakage | `strict-origin-when-cross-origin` |
+| `Permissions-Policy` | Sensor abuse | `camera=(); microphone=(); geolocation=()` |
+| `Access-Control-Allow-Origin` | Cross-origin theft | Specific domain — no wildcard |
+
+### HSTS Flow
+
+```
+1. First visit: http://bloodos.com
+   → Middleware 301 redirect → https://bloodos.com
+   → Server sends HSTS header (max-age=63072000)
+
+2. Browser caches HSTS rule for 2 years
+   → All future requests pre-upgraded to HTTPS by browser
+   → HTTP request never even leaves the browser
+
+3. With preload: HSTS enforced even before first visit
+```
+
+### CSP Directives Explained
+
+```
+default-src 'self'        — All resources from own origin only
+script-src 'self'         — No inline scripts, no eval() — eliminates most XSS
+img-src 'self' data: https: — Allow data URIs and HTTPS images
+frame-ancestors 'none'    — Cannot be iframed anywhere
+object-src 'none'         — Flash/plugins disabled
+upgrade-insecure-requests — HTTP subresources upgraded to HTTPS automatically
+```
+
+### CORS Allowlist
+
+```
+✅ ALLOWED: https://bloodos.com
+✅ ALLOWED: https://app.bloodos.com
+✅ ALLOWED: http://localhost:3000 (dev only)
+🚫 BLOCKED: https://evil.com
+🚫 BLOCKED: https://anything-else.com
+```
+
+### Reflection
+
+- HTTPS is non-negotiable in production — plain HTTP exposes auth tokens in transit
+- HSTS prevents protocol downgrade attacks even if a CDN misconfiguration exposes HTTP
+- CSP is the strongest second-line XSS defence — limits what injected scripts can do
+- CORS does NOT protect server-to-server calls — auth is still required for all routes
+- Wildcard CORS (*) effectively means "any website can call our API as the logged-in user"
+
+---
