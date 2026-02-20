@@ -1,64 +1,60 @@
-# ================================
-# 1. Base Image - Install dependencies
-# ================================
-FROM node:20-alpine AS base
 
-# Install libc6-compat (needed for some Next.js deps on Alpine)
+FROM node:18-alpine AS base
+
+# ─── Dependencies ─────────────────────────────────────────────────────────────
+FROM base AS deps
+# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
 RUN apk add --no-cache libc6-compat
-
 WORKDIR /app
 
-# Copy dependency files first for layer caching
-COPY package.json package-lock.json ./
-
-# Install dependencies (ci ensures clean install from lockfile)
+# Install dependencies based on the preferred package manager
+COPY package.json package-lock.json* ./
 RUN npm ci
 
-
-# ================================
-# 2. Builder Image - Build the application
-# ================================
+# ─── Builder ──────────────────────────────────────────────────────────────────
 FROM base AS builder
-
 WORKDIR /app
-
-COPY --from=base /app/node_modules ./node_modules
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build the Next.js application
-# Note: Ensure NEXT_PUBLIC_ variables are provided at build time if needed
-ENV NEXT_TELEMETRY_DISABLED 1
+# Next.js telemetry is disabled during the build
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Prisma generation requires the scheme to be present before build
+RUN npx prisma generate
+
 RUN npm run build
 
-
-# ================================
-# 3. Production Image - Run the application
-# ================================
-FROM node:20-alpine AS runner
-
+# ─── Runner ───────────────────────────────────────────────────────────────────
+FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Create a non-root user for security
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy built assets from builder
-COPY --from=builder /app/public ./public
+# Set the correct permission for prerender cache
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
+
+# Automatically leverage output traces to reduce image size
+# Ensure "output: 'standalone'" is set in next.config.ts!
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
+# Copy Prisma query engine and schema for runtime
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
-# Switch to non-root user
 USER nextjs
 
-# Expose the application port
 EXPOSE 3000
 
-# Set environment variables for the standalone server
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+ENV PORT=3000
+# HOSTNAME "0.0.0.0" allows the container to receive connections from outside (load balancer)
+ENV HOSTNAME="0.0.0.0"
 
-# Start the application
 CMD ["node", "server.js"]
