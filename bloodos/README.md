@@ -2257,3 +2257,69 @@ Containers are fundamentally designed to quickly scale or instantly revert.
 - Automation removes the possibility of forgetting to execute `./build` before manually SFTP transferring binaries and fundamentally guarantees reproducible testing structures across staging and live limits symmetrically!
 
 ---
+
+## Deployment Verification & Automated Rollback (Assignment 2.49)
+
+Building Docker containers accurately does not guarantee that the application successfully booted in production. Database migrations could crash, or environment variables (`.env`) could be missing. To address this, we embedded robust **Post-Deployment Verification** directly into `.github/workflows/ci.yml`.
+
+### Deployment Safety Overview
+
+| Concept | Meaning | Why Important |
+| :--- | :--- | :--- |
+| **Verification** | Validating the physical live environment | Replaces "It deployed!" with "It successfully resolved traffic!" |
+| **Smoke Tests** | Fast `<30s` tests running natively against ALBs | Prevents 502 Bad Gateway outages extending gracefully into production traffic. |
+| **Rollback** | Reverting to a previously successful container SHA | Ensures critical outages are restored structurally in `< 1 minute` without needing hotfixes. |
+
+### Health Endpoint Code
+
+Implemented at `src/app/api/health/route.ts`. Returns a pure Node.js representation:
+```json
+{ "status": "OK", "uptime": 45.2, "version": "1.0.0" }
+```
+**Why exclude DB Queries?** Health checks are pinged every 5-10 seconds by Load Balancers. Binding this endpoint to `prisma.user.findFirst()` triggers an accidental architecture DDoS constraint when thousands of concurrent ALB nodes spin up.
+
+### CI/CD Verification YAML Logic
+
+1. **`curl -f`**: Embedded tightly into Github Actions `ci.yml`. The `-f` flag tells curl to instantly exit with status code `1` if the Next.js app yields a `400` or `500` HTTP exception. This physical network physics check immediately halts passing CI jobs if the container is dead on arrival.
+2. **`npm run test:smoke`**: Evaluates purely compiled browser logic natively running inside the `__smoke_tests__` structure.
+
+### DevOps Metrics Matrix
+
+| Metric | Meaning | Ideal Target |
+| :--- | :--- | :--- |
+| **MTTD** | Mean Time To Detect | `< 1 minute` (Solved exactly via `curl` health checks and PagerDuty ALARMs) |
+| **MTTR** | Mean Time To Recover | `< 5 minutes` (Solved exclusively via Automated Script Rollbacks) |
+| **CFR** | Change Failure Rate | `< 10%` (Controlled by rigorous QA pre-merges limiting bugs heavily) |
+
+### Continuous Deployment Rollback Automation
+
+Instead of frantically analyzing logs during a Live Production Outage, you simply automate an `if: failure()` override condition directly into `ci.yml` instructing AWS or Azure to re-deploy the last known stable instance mathematically. 
+
+- **Strategy A: Redeploy Immutable Tags**. Instructs orchestrators to abandon the current Git commit pointer and immediately re-map ALBs routing to the previous `SHA` container physically.
+- **Strategy B: Blue-Green Deployment**. Maintain entirely separate Load Balancers (`Blue`). The CI deploys fully to `Green`. We run tests on `Green`. If it works perfectly, DNS seamlessly swaps over. If it fails, traffic never left `Blue` so Users experienced $0$ downtime!
+
+#### AWS ECS (Fargate) Example
+Leverage the CLI inside Github strictly under `if: failure()` bounds:
+```bash
+# Force the system to revert cleanly ignoring the recent bad build tag
+aws ecs update-service --cluster bloodos-cluster --service bloodos-service --force-new-deployment
+```
+
+#### Azure App Service Example
+Azure utilizes advanced Native Deployment Slots:
+```bash
+# Swaps the broken 'Production' back perfectly to the stable 'Staging' slot container physically resolving MTTR!
+az webapp deployment slot swap  --resource-group bloodos-group --name bloodos-app --slot staging --target-slot production
+```
+
+### Failure Simulation Guide
+
+1. Intentionally break `src/app/api/health/route.ts` by returning a `500` error natively.
+2. Observe the GitHub Action pipeline progressing to `Deploy`. It successfully pushes the Docker. 
+3. Watch the `Deploy Verification` run the `curl -f` loop and instantly crash with a red X limit!
+4. The `.github/workflows/ci.yml` structurally interprets the `if: failure()` catch block and executes the `MTTR AWS ECS Rollback` scripts instantly resolving the constraint back to perfect production bounds.
+
+### Reflection
+A deployment without metrics simply means hoping the application survives. By physically establishing Health Endpoints coupled strictly to `curl` failure constraints, we shifted our MTTR (Recovery speed) purely onto autonomous computing loops ensuring $0$ user downtime regardless of deployment entropy bounds.
+
+---

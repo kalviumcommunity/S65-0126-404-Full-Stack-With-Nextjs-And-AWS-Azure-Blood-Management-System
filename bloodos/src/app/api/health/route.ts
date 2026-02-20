@@ -1,34 +1,24 @@
-
 import { NextResponse } from 'next/server';
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
- * GET /api/health
+ * Deployment Health Check API
  * ─────────────────────────────────────────────────────────────────────────────
- * Load Balancer Health Probe
+ * Extremely lightweight Edge/Node route designed strictly for AWS Elastic Load 
+ * Balancers (ALB) and CI/CD Pipeline Verification steps to validate the container
+ * didn't crash upon launching.
  * 
- * This endpoint is extremely fast and lightweight. It is used by AWS Application 
- * Load Balancer (ALB) and Azure App Service Health checks to guarantee the 
- * underlying Node.js runtime process is alive and accepting incoming requests.
- * 
- * Unlike /api/health/db, it intentionally avoids calling databases, caches,
- * or 3rd party APIs, preventing false positive failures (e.g. if the DB is restarting,
- * the frontend UI shouldn't be killed by the load balancer).
+ * Notice it strictly avoids Database queries (`prisma.user.findFirst()`) to 
+ * prevent DDoS loops from external uptime ping services overwhelming connection pools.
  */
-export function GET() {
+export async function GET() {
     return NextResponse.json(
         {
-            status: 'UP',
-            timestamp: new Date().toISOString(),
+            status: 'OK',
             uptime: process.uptime(),
-            memory_usage: process.memoryUsage(),
+            timestamp: new Date().toISOString(),
+            version: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
         },
-        {
-            status: 200,
-            headers: {
-                // Enforce no caching to guarantee the LB hits the running memory process directly
-                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-            },
-        }
+        { status: 200 }
     );
 }
