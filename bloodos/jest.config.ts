@@ -11,6 +11,9 @@ const config: Config = {
     // Automatically clear mock calls, instances, contexts and results before every test
     clearMocks: true,
 
+    // Only run files ending in .test.ts or .test.tsx
+    testMatch: ['**/__tests__/**/*.test.[jt]s?(x)'],
+
     // Indicates whether the coverage information should be collected while executing the test
     collectCoverage: true,
 
@@ -20,6 +23,7 @@ const config: Config = {
     collectCoverageFrom: [
         'src/lib/math.ts',
         'src/components/ui/Button.tsx',
+        'src/app/api/users/route.ts',
     ],
 
     // This will fail the test suite if coverage drops below 80%
