@@ -1964,3 +1964,49 @@ By generating a temporary URL on the backend, we bypass the Next.js server for t
 - **Scale**: Cloud storage is infinitely scalable compared to local disk storage on traditional VPS servers.
 
 ---
+
+## Cloud Secret Management — AWS / Azure (Assignment 2.40)
+
+Implemented cloud-based runtime secret injection using AWS Secrets Manager (or Azure Key Vault), completely removing `.env` dependencies from the production environment to enhance security and ease credential rotation.
+
+### Local `.env` vs Cloud Secrets
+
+| Feature | `.env` File | AWS Secrets / Azure Vault |
+| :--- | :--- | :--- |
+| **Storage location** | Plaintext on disk | Encrypted at rest (KMS) |
+| **Risk of Git leak** | Very High | Zero |
+| **Access Control** | Anyone with file system access | Strict IAM / RBAC roles |
+| **Rotation** | Requires redeploy / restart | Automatic, zero-downtime |
+| **Audit Log** | None | CloudTrail / Azure Monitor |
+
+### Implementation Details: AWS Secrets Manager
+
+1. **Storage**: Created an AWS Secret (`bloodos/prod/secrets`) storing JSON key-value pairs (e.g., `DATABASE_URL`, `JWT_SECRET`).
+2. **Access Strategy**: The Next.js application runs with an **IAM Execution Role**. Instead of hardcoded access keys, AWS natively passes temporary credentials to the Node process.
+3. **Least Privilege**: The IAM policy restricts access to exactly **one Action** (`secretsmanager:GetSecretValue`) and exactly **one Resource** (the specific Secret ARN).
+4. **Injection**: During runtime execution, the utility uses the `@aws-sdk/client-secrets-manager` to fetch and parse the JSON, making variables explicitly available in memory, never writing to disk.
+
+### Implementation Details: Azure Key Vault (Alternative)
+
+For Azure deployments, the identical security pattern applies:
+1. Store keys within a Key Vault resource.
+2. An Azure **Managed Identity** attached to the App Service handles authentication (eliminating connection strings).
+3. The `@azure/identity` SDK (`DefaultAzureCredential`) securely retrieves keys natively.
+
+### Secret Rotation Strategy
+
+- **Manual vs Auto**: AWS and Azure provide built-in templates to auto-rotate database passwords via Lambda functions or Automation Accounts directly interacting with RDS.
+- **Downtime-Free**: The database issues a secondary password, the AWS Secret is updated, and Next.js connections begin using the new password. The primary password is then dropped.
+
+### Production Hardening
+
+- **Never Print Secrets**: The validation endpoint `GET /api/admin/secrets` proves successful runtime injection by returning an array of the keys (e.g., `["DATABASE_URL", "JWT_SECRET"]`) but intentionally masks the actual secret values.
+- **Network Isolation**: Create a VPC Endpoint (AWS PrivateLink) so that requests to Secrets Manager traverse internal AWS networks rather than the public internet.
+
+### Reflection
+
+- Storing secrets on disk (`.env` files) on production servers violates several security compliance standards (SOC2, ISO 27001).
+- By shifting to Managed Secrets, the infrastructure inherently trusts the execution environment, preventing credential leaks even if the source code is compromised.
+- While managing cloud policies requires steep learning curves initially, the long-term benefits in auditing and access revocation are indispensable for any enterprise application.
+
+---
