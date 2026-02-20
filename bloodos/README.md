@@ -2223,3 +2223,37 @@ The workflow accesses production bounds utilizing secure Action mappings (`${{ s
 - **Fail Fast Principle**: Notice that `npm run lint` and `npm test` execute long before `docker build` spins. If code is invalid, stopping it synchronously in 15 seconds saves 8 minutes of Docker compute compilation costs.
 
 ---
+
+## Multi-Stage Docker Build & Remote Registry Automation (Assignment 2.48)
+
+This consolidates infrastructure artifacts securely via Automated Docker CI Workflows `.github/workflows/docker.yml` binding branch executions exclusively to remote container registries (AWS ECR / Azure ACR).
+
+### Docker Multi-Stage Optimization
+
+A single-stage Node Dockerfile is usually > 1.2 GB. By executing a **Multi-Stage Build**, we reduce production execution to `< 150 MB`:
+1. **`deps` stage**: Resolves `package-lock.json` caching.
+2. **`builder` stage**: Compiles TS to JS, executes `prisma generate` mapped with the Alpine engine.
+3. **`runner` stage**: Throws away the compiler, test suites, and node_modules bloat. It merely invokes the `/app/.next/standalone` node binaries securely strictly inside a reduced permission `nextjs:nodejs` user space.
+
+### Workflow Configuration (`docker.yml`)
+
+When code pushes hit `main` or `develop`, a dedicated GitHub Actions ubuntu matrix spins up.
+1. **Docker Setup Buildx Action (`v3`)**: Activates Docker's advanced caching engines dynamically mapping layer resolution over Github Actions (`type=gha`), eliminating minutes of `npm install` execution in CI.
+2. **Registry Login**: Exchanges encrypted strings (`${{ secrets.AWS_ACCESS_KEY_ID }}`) strictly mounted in GitHub's Secret Manager for a temporary ECR IAM session token perfectly bridging CI identity safely.
+
+### Immutable Tagging Architecture
+
+Containers are fundamentally designed to quickly scale or instantly revert. 
+- **`myapp:latest`** or **`myapp:develop`**: Points simply to the freshest code. Used primarily by orchestrators (AWS ECS) mapping rolling updates via pointer routing.
+- **`myapp:${{ github.sha }}`**: Crucial for Disaster Recovery. Generates immutable commits (e.g. `1a2b3c4`). If `latest` causes a memory leak, orchestrators immediately remap down to a previous immutable SHA completely reviving production traffic safely in seconds.
+
+### Cold Start and Security Limits (`.dockerignore`)
+
+- Explicit mapping blocking the `.env.*`, `coverage/`, and root `.git` folders inherently stops source-code theft vectors out of leaked ECR artifacts. 
+
+### Reflection
+
+- **Predictability constraints**: Developers no longer say "It works perfectly on my Mac!". The pipeline guarantees the Linux Alpine container executed by the cloud is completely chemically identical globally. 
+- Automation removes the possibility of forgetting to execute `./build` before manually SFTP transferring binaries and fundamentally guarantees reproducible testing structures across staging and live limits symmetrically!
+
+---

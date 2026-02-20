@@ -1,0 +1,94 @@
+name: Docker Build & Registry Push
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+# Prevents multiple duplicate builds of the exact same Git commit hash or branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-push-aws-ecr:
+    name: Build Multi-Stage Docker & Push (AWS ECR)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        # Docker Buildx allows us to leverage layer caching dynamically reducing build time
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Extract Tagging Metadata
+        id: prep
+        run: |
+          # Determine the immutable base tag (Git SHA) protecting rollbacks securely
+          echo "SHA_TAG=${{ github.sha }}" >> $GITHUB_ENV
+          
+          # Determine environment alias tag mapping (latest for main, develop for develop)
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "ENV_TAG=latest" >> $GITHUB_ENV
+          else
+            echo "ENV_TAG=develop" >> $GITHUB_ENV
+          fi
+
+      - name: Build, Cache and Push securely to ECR
+        uses: docker/build-push-action@v5
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+        with:
+          context: .
+          push: true
+          # Maps 2 tags distinctly: an immutable rollback SHA, and the mutable environment pointer
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:${{ env.SHA_TAG }}
+            ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:${{ env.ENV_TAG }}
+          # Injects remote caching pulling previously built layers out of the Github Cache backend dynamically
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # -----------------------------------------------------------------------------------
+  # AZURE ALTERNATIVE IMPLEMENTATION (Commented out but structurally proven)
+  # -----------------------------------------------------------------------------------
+  # build-and-push-azure-acr:
+  #   name: Build Multi-Stage Docker & Push (Azure ACR)
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout Repository
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Azure Container Registry Login
+  #       uses: azure/docker-login@v1
+  #       with:
+  #         login-server: ${{ secrets.ACR_LOGIN_SERVER }}
+  #         username: ${{ secrets.ACR_USERNAME }}
+  #         password: ${{ secrets.ACR_PASSWORD }}
+  #
+  #     - name: Build, Cache and Push to ACR
+  #       uses: docker/build-push-action@v5
+  #       with:
+  #         context: .
+  #         push: true
+  #         tags: |
+  #           ${{ secrets.ACR_LOGIN_SERVER }}/bloodos:${{ github.sha }}
+  #           ${{ secrets.ACR_LOGIN_SERVER }}/bloodos:latest
+  #         cache-from: type=gha
+  #         cache-to: type=gha,mode=max
