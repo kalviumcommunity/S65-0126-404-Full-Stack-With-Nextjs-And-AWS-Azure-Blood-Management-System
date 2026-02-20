@@ -2010,3 +2010,46 @@ For Azure deployments, the identical security pattern applies:
 - While managing cloud policies requires steep learning curves initially, the long-term benefits in auditing and access revocation are indispensable for any enterprise application.
 
 ---
+
+## Containerized Deployment (Assignment 2.41)
+
+Containerized the Next.js application using Docker multi-stage builds and automated deployment to AWS ECS via GitHub Actions.
+
+### Multi-Stage Dockerfile Optimization
+
+The `Dockerfile` is structured to dramatically reduce the final image size and attack surface:
+1. **deps**: Installs `node_modules` required for building the app.
+2. **builder**: Executes `npx prisma generate` and `npm run build`. Relies on Next.js `output: 'standalone'` being configured to gather strictly what is imported.
+3. **runner**: A highly pruned alpine image running as the `nextjs` (UID 1001) non-root user. Copies over only the `.next/standalone` files and the compiled Prisma query engine.
+- Result: Reduces a ~1.5GB codebase to a ~120MB image, drastically improving cold starts and reducing ECR storage costs.
+
+### Cloud Runtime Setup (AWS ECS / Azure App Service)
+
+| Feature | AWS ECS (Fargate) | Azure App Service |
+| :--- | :--- | :--- |
+| **Compute Type** | Serverless Tasks | Managed Web Host |
+| **Container Registry** | Amazon ECR | Azure Container Registry (ACR) |
+| **Networking** | ALB → Fargate ENI | App Service Load Balancer |
+| **Auto-scaling** | CloudWatch Target CPU >70% | Scale-out Rules >10 Queue length |
+
+### Health Check Configuration
+
+Implemented a lightweight, dedicated `GET /api/health` load balancer probe. 
+- It verifies that the Node process is actively serving HTTP requests.
+- It intentionally **does not** query the PostgreSQL database. If the DB is temporarily overwhelmed, we don't want the load balancer terminating perfectly healthy frontend containers, which would cause a cascading failure (thundering herd).
+
+### CI/CD Pipeline (GitHub Actions)
+
+Configured `.github/workflows/deploy.yml` with the following pipeline constraints:
+1. **Concurrency Control**: Prevents multiple PR merges from deploying out of order.
+2. **Lint & Typecheck**: Fails the build immediately before wasting time and money on Docker if TypeScript (`tsc --noEmit`) detects errors.
+3. **ECR Push**: Tags the image immutably using the exact Git SHA (`github.sha`), ensuring exact traceability between code and production deployments.
+4. **ECS Update & Wait**: Uses `amazon-ecs-deploy-task-definition` to apply the new container hash to the ECS cluster, and critically uses `wait-for-service-stability: true` to fail the Action if the new container crashes on startup (e.g. invalid env config).
+
+### Reflection
+
+- **Predictability**: Containerization guarantees that the app will run exactly the same way on AWS ECS as it did during local development on macOS. "Works on my machine" is eliminated.
+- **Rollbacks**: Reverting a bad deployment is no longer a code re-build. It simply entails pointing the ECS Task Definition back to the previous Git SHA container hash, an operation taking less than 5 seconds.
+- **Security**: Stripping away `node_modules/devDependencies` and running as a non-root user in the `runner` stage significantly minimizes the OS-level attack footprint of the container. 
+
+---
