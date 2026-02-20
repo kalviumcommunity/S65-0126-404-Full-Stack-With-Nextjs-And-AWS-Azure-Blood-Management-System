@@ -1,5 +1,7 @@
 
 import type { Metadata } from 'next';
+import { AuthProvider } from '@/context/AuthContext';
+import { UIProvider } from '@/context/UIContext';
 import { LayoutWrapper } from '@/components';
 import './globals.css';
 
@@ -8,6 +10,14 @@ export const metadata: Metadata = {
   description: 'BloodOS is a full-stack blood management platform connecting donors, hospitals, and NGOs.',
 };
 
+/**
+ * RootLayout — Wraps all pages in the global provider tree:
+ *
+ * <AuthProvider>        ← Authentication state (user, login, logout)
+ *   <UIProvider>        ← UI state (theme, sidebarOpen)
+ *     <LayoutWrapper>   ← Header + Sidebar
+ *       {children}      ← Page content
+ */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -24,17 +34,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             padding: '8px 16px',
             zIndex: 100,
             borderRadius: '0 0 8px 0',
-            transition: 'top 0.2s',
-            fontWeight: 600,
-            fontSize: '14px',
           }}
-          onFocus={(e) => { (e.target as HTMLElement).style.top = '0'; }}
-          onBlur={(e) => { (e.target as HTMLElement).style.top = '-40px'; }}
         >
           Skip to main content
         </a>
 
-        <LayoutWrapper>{children}</LayoutWrapper>
+        {/* Global Provider Tree */}
+        <AuthProvider>
+          <UIProvider>
+            <LayoutWrapper>
+              {children}
+            </LayoutWrapper>
+          </UIProvider>
+        </AuthProvider>
       </body>
     </html>
   );
