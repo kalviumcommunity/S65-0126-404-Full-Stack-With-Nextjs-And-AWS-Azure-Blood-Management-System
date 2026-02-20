@@ -2194,3 +2194,34 @@ Running `npm run test:coverage` currently proves:
 Since `.github/workflows/unit-tests.yml` executes `jest --coverage` natively on GitHub Actions Ubuntu containers, this integration setup proves unconditionally that every developer PR merge creates correct REST mapping and natively protects `Prisma` invocation without needing to mount complicated GitHub PostgreSQL service action runners. 
 
 ---
+
+## Complete CI/CD Pipeline (Assignment 2.47)
+
+Consolidated fragmented GitHub Action files into a single, comprehensive Master Pipeline (`.github/workflows/ci.yml`). This orchestrates the strict Quality Assurance sequence: **Linting → Testing (Unit & Integration) → Build Validation → Production Deployment**.
+
+### Pipeline Stages
+
+| Stage | Command | Purpose | Failure Impact |
+| :--- | :--- | :--- | :--- |
+| **Setup** | `npm ci` | Installs identical package trees defined strictly in `package-lock.json` caching from `@actions/setup-node@v4`. | Invalid dependencies crash builds accurately before tests. |
+| **Lint** | `npm run lint` | ESLint static analysis evaluating TS syntax formatting. | Blocks unreadable or non-idiomatic JS code cleanly. |
+| **Test** | `npm run test:coverage` | Validates Jest logic, asserting the global `80% Coverage Threshold ` constraint dynamically on the Node server. | **High!** Fails if logic bounds (e.g. Zod API shapes or DOM assertions) fall off or math limits decline mathematically. |
+| **Build** | `npm run build` | Next.js production TS compilation & SSG optimization. | Flags Type errors deeply embedded inside TSX views. |
+| **Deploy** | `docker push` | Authenticates securely to AWS ECR and mutates ECS `task-definition.json` | Pushes the exact, immutable Git SHA (`${{ github.sha }}`) hash LIVE. |
+
+### Caching and Concurrency
+
+- **Concurrency**: Defined locally via `concurrency: group: ${{ github.workflow }}-${{ github.ref }} cancel-in-progress: true`. If a developer pushes code 10 times in 10 minutes to a PR branch, we instantly cancel the 9 previous workflows. This saves massive compute-hour budgets.
+- **Node Modules Caching**: Activating GitHub's native `cache: 'npm'` shrinks the `npm ci` boot times by caching `.npm` folder artifacts safely across workflows.
+
+### Secrets Management
+
+The workflow accesses production bounds utilizing secure Action mappings (`${{ secrets.AWS_ACCESS_KEY_ID }}`).
+- Setting these dynamically inside the Github repository `Settings -> Secrets -> Actions` guarantees we never commit plaintext database URIs, API keys, or AWS Identity objects to public version control networks (preventing OWASP Leak Vectors).
+
+### Reflection
+
+- **Confidence vs Chaos**: Relying entirely on developers typing "tests passed on my machine" results in deploying buggy artifacts. Integrating rigorous CI Automation structurally blocks any and all PR merges on Github natively until mathematically proven safe.
+- **Fail Fast Principle**: Notice that `npm run lint` and `npm test` execute long before `docker build` spins. If code is invalid, stopping it synchronously in 15 seconds saves 8 minutes of Docker compute compilation costs.
+
+---
