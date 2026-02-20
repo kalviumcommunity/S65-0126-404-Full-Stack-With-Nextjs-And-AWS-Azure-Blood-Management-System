@@ -8,3 +8,5 @@ export { LayoutWrapper } from './layout/LayoutWrapper';
 export { Button } from './ui/Button';
 export { Card } from './ui/Card';
 export { InputField } from './ui/InputField';
+export { FormInput } from './ui/FormInput';
+

@@ -1429,9 +1429,63 @@ mutate('/api/users');  // Triggers SWR to refetch → UI updates automatically
 - **Trade-offs**: Stale data may briefly show outdated content — mitigated with `revalidateOnFocus`.
 - **Scalability**: SWR's key-based caching mirrors our Redis layer — the same Cache-Aside pattern at the client level.
 
+
 ---
 
-## 📄 License
+## � Form Handling & Validation (Sprint 1 – Assignment 2.30)
+
+We implemented schema-based form validation using **React Hook Form + Zod + @hookform/resolvers**, building two fully validated forms from a single reusable `FormInput` component.
+
+### 1️⃣ Why React Hook Form + Zod?
+
+| Feature | React Hook Form | Zod |
+| :--- | :--- | :--- |
+| **Role** | Form state & submission | Schema validation |
+| **Re-renders** | Minimal (uncontrolled) | N/A |
+| **Type Safety** | Partial | ✅ Full — `z.infer<typeof schema>` |
+| **Error UX** | `formState.errors` | Custom error messages |
+
+### 2️⃣ Validation Flow
+
+```
+User Input → Zod Schema Validation → zodResolver → React Hook Form Errors → FormInput error prop → UI
+```
+
+### 3️⃣ Reusable FormInput Component
+
+The single `<FormInput>` component is used across both `/signup` and `/contact` with different schemas:
+
+```typescript
+// Signup — password confirmation with .refine()
+const signupSchema = z.object({ ... })
+  .refine(data => data.password === data.confirmPassword, {
+    message: 'Passwords do not match', path: ['confirmPassword'],
+  });
+
+// Contact — textarea + live character count
+const contactSchema = z.object({
+  message: z.string().min(10).max(1000),
+});
+```
+
+### 4️⃣ Accessibility Highlights
+
+- `aria-invalid={hasError}` on inputs — screen readers announce invalid state
+- `aria-describedby` links input to its error message
+- `role="alert"` on error paragraph — announced immediately by screen readers
+- `noValidate` on `<form>` — disables native browser validation, keeping Zod in full control
+
+### 🧠 Reflection
+
+- **Reusability**: One `FormInput` component covers all use cases — text, email, password, textarea.
+- **Type Safety**: `z.infer<typeof schema>` gives 100% TypeScript types from the Zod definition — no duplication.
+- **Performance**: React Hook Form uses uncontrolled inputs under the hood — zero re-renders on keystroke.
+- **Scalability**: Adding a new validated form is just writing a new Zod schema — no changes to shared components.
+
+---
+
+## �📄 License
+
 
 
 
