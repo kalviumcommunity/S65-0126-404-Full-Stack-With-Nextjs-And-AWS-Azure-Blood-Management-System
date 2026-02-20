@@ -2132,3 +2132,37 @@ Logs are expensive. A highly trafficked API can generate Terabytes of text per m
 - **Signal vs Noise**: By creating explicit `logger.error()` mappings tied to Alarms, developers are not spammed with general "info" traces, massively reducing Alert Fatigue.
 
 ---
+
+## Unit Testing & CI Integration (Assignment 2.45)
+
+Implemented a robust unit testing framework using **Jest** and **React Testing Library (RTL)** configured explicitly for the Next.js 13+ App Router in a TypeScript environment.
+
+### Testing Pyramid Position
+
+Unit tests form the foundation of our testing pyramid. They are fast, highly deterministic, and isolated. 
+By employing **jsdom**, our unit tests can mock browser logic instantly without the massive overhead of spinning up entire Chromium instances like e2e tests (Cypress/Playwright) do.
+
+### Framework Configuration
+
+1. **`jest.config.ts`**: Utilizes `next/jest` to automatically extract the `.env` variables and `compilerOptions.paths` (`@/*`) natively from the Next.js build graph.
+2. **`jest.setup.ts`**: Imports `@testing-library/jest-dom` globally so every test file instantly gains access to powerful declarative matchers like `expect(element).toBeInTheDocument()`.
+3. **Coverage Thresholds**: The global config explicitly enforces an **80% minimum coverage constraint** bounding Branches, Functions, Lines, and Statements. 
+
+### Sample Test Matrix
+
+- **Utility Edge Bounds (`__tests__/math.test.ts`)**: Demonstrates traditional Assertions testing both "happy paths" and explicit `toThrow()` Error Boundaries enforcing parameter safety constraints. Hits a clean 100% Branch map.
+- **Component DOM Sandbox (`__tests__/components/Button.test.tsx`)**: Demonstrates virtual DOM rendering, asserting declarative Style mappings (`background: #dc2626`), tracking Accessibility (`aria-busy`), and utilizing `jest.fn()` coupled with highly accurate `userEvent.click()` to simulate browser physics rather than basic DOM events.
+
+### CI/CD Pipeline Action
+
+Added a strict GitHub Action: `.github/workflows/unit-tests.yml`.
+
+- **Regression Blocking**: This pipeline fires automatically on every PR.
+- If a developer submits code that drops the global test coverage below 80% (or fails a single test), the GitHub Action immediately exits with status code `1`, physically blocking the PR from being merged. This mathematically guarantees code quality entropy cannot occur in the `main` branch.
+
+### Reflection
+
+- **Architecture over Implementation**: The `Button` test explicitly looks for `getByRole('button')` instead of querying by CSS classes (`.btn-primary`). Testing behavior (how a screen reader "sees" the button) means the test survives CSS refactors perfectly without false-positive failures.
+- **Why Automated CI Tests Matter**: Relying on humans to open their terminal and type `npm test` before pushing to origin never scales. Integrating the coverage checker directly onto the PR pipeline enforces peace-of-mind that a broken math function won't bring down production at 3:00 AM.
+
+---
